@@ -1,6 +1,6 @@
-﻿using Dawnsbury.Audio;
+﻿using System.Collections.Immutable;
+using Dawnsbury.Audio;
 using Dawnsbury.Core;
-using Dawnsbury.Core.CharacterBuilder;
 using Dawnsbury.Core.CharacterBuilder.Selections.Options;
 using Dawnsbury.Core.CharacterBuilder.Spellcasting;
 using Dawnsbury.Core.CombatActions;
@@ -16,6 +16,7 @@ using Dawnsbury.Core.Possibilities;
 using Dawnsbury.Core.Roller;
 using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Modding;
+using Microsoft.Xna.Framework;
 
 namespace New_Skill_Feats_and_Items;
 
@@ -31,7 +32,7 @@ public abstract class SkillItems
                 .WithDescription("{i}This long and billowing scarf is typically woven of silk or sheer fabric and adorned with bells or other jangling bits of shiny metal.{/i}\n\n" +
                                  "You have a +1 item bonus to Performance." +
                                  "\n\nYou can use {i}Swirling Scarf{/i} {icon:Action}: If your last action was a successful Performance check, you become concealed until the beginning of your next turn.")
-                .WithItemAction((item, user) =>
+                .WithItemAction((_, user) =>
                     {
                         return new CombatAction(user, new ModdedIllustration("SIAssets/DanceScarf.png"), "Swirling Scarf", [Trait.Manipulate, Trait.Basic],
                                 "{b}Requirements{/b} On your most recent action, you succeeded at a Performance check" +
@@ -40,8 +41,8 @@ public abstract class SkillItems
                                         {
                                             if (self.Actions.ActionHistoryThisTurn.Count == 0)
                                                 return "You didn't perform this turn";
-                                            CombatAction? combatAction = self.Actions.ActionHistoryThisTurn.Last();
-                                            return (combatAction.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill is Skill.Performance && combatAction?.CheckResult >= CheckResult.Success ? null : "Your most recent action wasn't a successful performance.")!;
+                                            CombatAction combatAction = self.Actions.ActionHistoryThisTurn.Last();
+                                            return (combatAction.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill is Skill.Performance && combatAction.CheckResult >= CheckResult.Success ? null : "Your most recent action wasn't a successful performance.")!;
                                         }
                                     )))
                             .WithActionCost(1)
@@ -62,7 +63,7 @@ public abstract class SkillItems
                             });
                     }, 
                     (item, _) => item.ItemModifications.All(mod => mod.Kind != ItemModificationKind.CustomPermanent))
-                .WithPermanentQEffectWhenWorn((qfCoA, item) =>
+                .WithPermanentQEffectWhenWorn((qfCoA, _) =>
                 {
                     qfCoA.BonusToSkills = skill => skill == Skill.Performance ? new Bonus(1, BonusType.Item, "Dancing Scarf") : null;
                 });
@@ -85,8 +86,8 @@ public abstract class SkillItems
                 .WithDescription("{i}This rugged metal eyepiece etched with square patterns is designed to be worn over a single eye. Twisting the lens reveals a faint three-dimensional outline of an item you plan to build or repair, with helpful labels on the component parts.{/i}\n\n" +
                                  "You have a +1 item bonus to Crafting." +
                                  "\n\nOnce at the start of combat, as a {icon:FreeAction} free action, you can make improvements to a weapon or shield. Make a Crafting check against the standard DC by level of the item you're affecting, on a Success or better a weapon gains a +1 bonus to its damage rolls and a shield gains a +1 bonus to its hardness. If you are a master in Crafting, these bonuses increase to +2.")
-                .WithOnCreatureWhenWorn((item, self) => { self.AddQEffect(SiHelpers.EyepieceChosenEffect());})
-                .WithPermanentQEffectWhenWorn((qfCoA, item) =>
+                .WithOnCreatureWhenWorn((_, self) => { self.AddQEffect(SiHelpers.EyepieceChosenEffect());})
+                .WithPermanentQEffectWhenWorn((qfCoA, _) =>
                 {
                     qfCoA.BonusToSkills = skill => skill == Skill.Crafting ? new Bonus(1, BonusType.Item, "Crafter's Eyepiece") : null;
                     qfCoA.StartOfCombat = async innerSelf =>
@@ -123,12 +124,12 @@ public abstract class SkillItems
                     self.GetOrCreateSpellcastingSource(SpellcastingKind.Innate, Trait.Innate, Ability.Charisma,
                         Trait.Occult).WithSpells([SpellId.OpenDoor], 1);
                 })
-                .WithPermanentQEffectWhenWorn((qfCoA, item) =>
+                .WithPermanentQEffectWhenWorn((qfCoA, _) =>
                 {
                     qfCoA.BonusToSkills = skill => skill == Skill.Thievery ? new Bonus(1, BonusType.Item, "Charlatan's Gloves") : null;
                 });
         });
-        ItemName mask = ModManager.RegisterNewItemIntoTheShop("Scoundrel's Mask", itemName =>
+        ModManager.RegisterNewItemIntoTheShop("Scoundrel's Mask", itemName =>
         {
             Item scoundrelMask = new Item(itemName, ModData.Illustrations.Mask, "scoundrel's mask", 4, 80, Trait.Magical, Trait.Invested, Trait.Homebrew, MaskTrait)
                 .WithWornAt(Trait.Mask)
@@ -157,7 +158,7 @@ public abstract class SkillItems
                         CombatAction? action = damageEvent.CombatAction;
                         Creature target = damageEvent.TargetCreature;
                         CheckResult result = damageEvent.CheckResult;
-                        if (action != null && target.IsFlatFootedTo(self, action) && action.HasTrait(Trait.Weapon) && action.HasTrait(Trait.Attack) 
+                        if (action != null && target.IsFlatFootedTo(self, action) && action.HasTrait(Trait.Weapon) && action.HasTrait(Trait.Attack) && action.HasTrait(Trait.Strike) 
                             && result >= CheckResult.Success && !self.PersistentUsedUpResources.UsedUpActions.Contains("ScoundrelsMask")
                             && action.Item != null && !target.IsImmuneTo(Trait.PrecisionDamage))
                         {
@@ -185,6 +186,77 @@ public abstract class SkillItems
                 });
             return scoundrelMask;
         });
+        ModManager.RegisterNewItemIntoTheShop("HuntersArrowhead", itemName =>
+        {
+            Item item = new Item(itemName, new ModdedIllustration("SIAssets/HuntersArrowhead.png"), "Hunter's Arrowhead", 4, 80, Trait.Enchantment, Trait.Magical, Trait.Invested, Trait.Worn)
+                // .WithItemBonusToSkill(Skill.Survival)
+                .WithDescription("{i}This arrowhead-shaped charm is not meant to be affixed to an arrow, but instead to be carried in a pocket or inside of a quiver.{/i}\n\nYou have a +1 item bonus to Survival.\n\nOnce per day as a {icon:Reaction} reaction, when you would miss with an attack roll with a bow, you gain a +2 circumstance bonus to that attack roll, this can turn a miss into a hit.")
+                .WithPermanentQEffectWhenWorn((qf, _) =>
+                {
+                    Creature self = qf.Owner;
+                    qf.BonusToSkills = skill => skill == Skill.Survival ? new Bonus(1, BonusType.Item, "Hunter's Arrowhead") : null;
+                    qf.BeforeYourActiveRoll = (_, action, target) =>
+                    { 
+                        var circ = 0;
+                        List<int> circBonuses = [];
+                        var bonusEnumerable = action.ActiveRollSpecification?.DetermineBonus(action, self, target).Bonuses;
+                        if (bonusEnumerable != null)
+                            foreach (Bonus? bonus in bonusEnumerable)
+                            {
+                                if (bonus is { BonusType: BonusType.Circumstance })
+                                    circBonuses.Add(bonus.Amount);
+                            }
+                        if (circBonuses.Count > 0)
+                            circ = circBonuses.Max();
+                        ImmutableList<int> save = [circ];
+                        if (action.HasTrait(Trait.Strike) && action.ActiveRollSpecification != null && action.Item != null && action.Item.HasTrait(Trait.Bow) && !self.PersistentUsedUpResources.UsedUpActions.Contains("HuntersArrowhead") && circ < 2)
+                        {
+                            target.AddQEffect(new QEffect()
+                                {
+                                    YouAreTargetedByARoll = async (eff, combatAction, breakdown) =>
+                                    {
+                                        var ac = combatAction.ActiveRollSpecification?.TaggedDetermineDC.InvolvedDefense == Defense.AC ? combatAction.ActiveRollSpecification.TaggedDetermineDC.CalculatedNumberProducer.Invoke(combatAction, self, target).TotalNumber : 0;
+                                        var miss = ac - breakdown.TotalRollValue;
+                                        if (breakdown.CheckResult == CheckResult.Failure &&
+                                            combatAction.HasTrait(Trait.Strike) && action.Item != null &&
+                                            action.Item.HasTrait(Trait.Bow) && miss <= 2-save.FirstOrDefault())
+                                        {
+                                            if (await self.AskToUseReaction(
+                                                    "Would you like to use Hunter's Arrowhead to turn a miss into a hit?"))
+                                            {
+                                                self.Overhead("hunter's arrowhead", Color.Lime,
+                                                    self +
+                                                    " utilizes Hunter's Arrowhead to turn a miss into a hit.");
+                                                self.PersistentUsedUpResources.UsedUpActions.Add("HuntersArrowhead");
+                                                eff.ExpiresAt = ExpirationCondition.EphemeralAtEndOfImmediateAction;
+                                                self.AddQEffect(
+                                                    new QEffect(ExpirationCondition.EphemeralAtEndOfImmediateAction)
+                                                    {
+                                                        BonusToAttackRolls = (_, cAction, _) =>
+                                                        {
+                                                            if (cAction.HasTrait(Trait.Strike) &&
+                                                                cAction.Item != null &&
+                                                                cAction.Item.HasTrait(Trait.Bow))
+                                                            {
+                                                                return new Bonus(2, BonusType.Circumstance,
+                                                                    "Hunter's Arrowhead");
+                                                            }
+                                                            return null;
+                                                        }
+                                                    });
+                                                return true;
+                                            }
+                                        }
+                                        eff.ExpiresAt = ExpirationCondition.EphemeralAtEndOfImmediateAction;
+                                        return false;
+                                    }
+                                });
+                        }
+                        return Task.CompletedTask;
+                    };
+                });
+            return item;
+        });
         ModManager.RegisterActionOnEachCharacterSheet(values =>
         {
             SelectionOption maskSelections = new SingleFeatSelectionOption("MaskDefault",
@@ -192,7 +264,12 @@ public abstract class SkillItems
                 feat => feat.HasTrait(MaskTrait));
             Item? item = values.Inventory.Backpack.Find(item1 => item1 != null && item1.HasTrait(MaskTrait));
             if (item != null && values.Inventory.IsBestWornItemInItsBodyPart(item))
-                values.Calculated.AddSelectionOption(maskSelections);
+            {
+                values.Calculated.AtEndOfRecalculation += sheetValues =>
+                {
+                    sheetValues.AddSelectionOption(maskSelections);
+                };
+            }
         });
         ModManager.RegisterNewItemIntoTheShop("Choker of Nobility", itemName =>
         {
@@ -205,7 +282,7 @@ public abstract class SkillItems
                     self.GetOrCreateSpellcastingSource(SpellcastingKind.Innate, Trait.Innate, Ability.Charisma,
                         Trait.Divine).WithSpells([SpellId.Guidance], 1);
                 })
-                .WithPermanentQEffectWhenWorn((qfCoA, item) =>
+                .WithPermanentQEffectWhenWorn((qfCoA, _) =>
                 {
                     qfCoA.BonusToSkills = skill => skill == Skill.Diplomacy ? new Bonus(1, BonusType.Item, "Choker of Nobility") : null;
                 });

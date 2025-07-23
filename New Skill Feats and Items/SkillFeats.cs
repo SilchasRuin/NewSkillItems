@@ -103,7 +103,10 @@ public abstract class SkillFeats
                         "Default Assurance Setting",
                         SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, ft => ft.Tag is "Assurance Settings")
                     .WithIsOptional();
-                values.AddSelectionOption(setup);
+                values.AtEndOfRecalculation += sheetValues =>
+                {
+                    sheetValues.AddSelectionOption(setup);
+                };
             });
         }
         else
@@ -244,7 +247,7 @@ public abstract class SkillFeats
         BackgroundSelectionFeat rootWorker = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                 ModManager.RegisterFeatName("Root Worker"),
                 "Some ailments can't be cured by herbs alone. You learned ritual remedies as well, calling on nature spirits to soothe aches and ward off the evil eye. Taking up with adventurers has given you company on the road, as well as protection from those who would brand you a fake—or worse.",
-                "You're trained in {b}Occultism{/b}. You gain {b}Root Magic{/b} skill feat.",
+                "You're trained in {b}Occultism{/b}. You gain the {b}Root Magic{/b} skill feat.",
                 [new LimitedAbilityBoost(Ability.Intelligence, Ability.Wisdom), new FreeAbilityBoost()]
             )
             .WithOnSheet(sheet =>
@@ -700,7 +703,6 @@ public abstract class SkillFeats
                                                 bool flag2 =
                                                     breakdownResult.CheckResult == CheckResult.CriticalSuccess &
                                                     flag1;
-                                                Tile occupies = chosenCreature.Occupies;
                                                 Microsoft.Xna.Framework.Color lime = Microsoft.Xna.Framework.Color.Lime;
                                                 string str2 = flag2 ? "{b}{Green}Hidden{/}{/b}" : "{Green}Hidden{/}";
                                                 string str3 = chosenCreature.ToString();
@@ -720,7 +722,7 @@ public abstract class SkillFeats
                                                 string stringAndClear = interpolatedStringHandler.ToStringAndClear();
                                                 string log = $"{str2} from {str3}{stringAndClear}";
                                                 string logDetails = str1;
-                                                occupies.Overhead("hidden from", lime, log, "Create a diversion",
+                                                chosenCreature.Overhead("hidden from", lime, log, "Create a diversion",
                                                     logDetails);
                                                 friend.AddQEffect(new QEffect(flag2 ? "Lengthy diversion" : "Diversion",
                                                     $"You'll continue to be hidden from {chosenCreature} even in plain sight until you take an action that breaks stealth.",
@@ -745,7 +747,6 @@ public abstract class SkillFeats
                                             }
                                             else
                                             {
-                                                Tile occupies = chosenCreature.Occupies;
                                                 Microsoft.Xna.Framework.Color red = Microsoft.Xna.Framework.Color.Red;
                                                 string str5 = chosenCreature.ToString();
                                                 interpolatedStringHandler = new DefaultInterpolatedStringHandler(10, 3);
@@ -764,7 +765,7 @@ public abstract class SkillFeats
                                                 string stringAndClear = interpolatedStringHandler.ToStringAndClear();
                                                 string log = $"{{Red}}Failure{{/}} vs. {str5}{stringAndClear}";
                                                 string logDetails = str1;
-                                                occupies.Overhead("diversion failed", red, log, "Create a diversion",
+                                                chosenCreature.Overhead("diversion failed", red, log, "Create a diversion",
                                                     logDetails);
                                             }
                                             chosenCreature.AddQEffect(new QEffect()
@@ -794,13 +795,6 @@ public abstract class SkillFeats
                         }
                         return null;
                     };
-                    /*effect.AfterYouTakeAction = (qEffect, action) =>
-                    {
-                        if (action.Tag != null && (string)action.Tag == "DistractingPerformance")
-                            return Task.CompletedTask;
-                        qEffect.Owner.RemoveAllQEffects(qf => qf.Id == ModData.QEffectIds.Talent);
-                        return Task.CompletedTask;
-                    };*/
                 }
             );
     }
@@ -1232,6 +1226,7 @@ public abstract class SkillFeats
     {
         switch (action)
         {
+            case { Name: "Wing Buffet"} when skill is Skill.Athletics:
             case { ActionId: ActionId.Hide } when skill is Skill.Stealth:
             case { ActionId: ActionId.CreateADiversion } when skill is Skill.Deception:
             case { ActionId: ActionId.Sneak } when skill is Skill.Stealth:

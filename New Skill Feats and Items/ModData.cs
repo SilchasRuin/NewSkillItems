@@ -1,7 +1,6 @@
 ﻿using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Core.CombatActions;
 using Dawnsbury.Core.Mechanics;
-using Dawnsbury.Core.Mechanics.Treasure;
 using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Modding;
 
