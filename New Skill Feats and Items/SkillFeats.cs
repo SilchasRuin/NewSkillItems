@@ -103,10 +103,7 @@ public abstract class SkillFeats
                         "Default Assurance Setting",
                         SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, ft => ft.Tag is "Assurance Settings")
                     .WithIsOptional();
-                values.AtEndOfRecalculation += sheetValues =>
-                {
-                    sheetValues.AddSelectionOption(setup);
-                };
+                values.AddSelectionOption(setup);
             });
         }
         else
@@ -599,9 +596,12 @@ public abstract class SkillFeats
                                         "Use assurance with this action?", "yes"))
                                     self.AddQEffect(AssuranceAsk());
                         },
-                        BeforeYourActiveRoll = async (_, action, _) =>
+                        BeforeYourActiveRoll = async (_, action, target) =>
                         {
-                            if (!self.HasEffect(ModData.QEffectIds.AssuranceOff) && !self.HasEffect(ModData.QEffectIds.AssuranceOn) && !self.HasFeat(ModData.FeatNames.AssuranceThreshold) && action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill == skill)
+                            if (!self.HasEffect(ModData.QEffectIds.AssuranceOff) && !self.HasEffect(ModData.QEffectIds.AssuranceOn) && !self.HasFeat(ModData.FeatNames.AssuranceThreshold) 
+                                && action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill == skill
+                                && action.ActiveRollSpecification.DetermineDC.Invoke(action, self, target).TotalNumber <= sheet.Proficiencies.Get(skillTrait)
+                                    .ToNumber(self.ProficiencyLevel) + 10)
                                 if (await self.Battle.AskForConfirmation(self, IllustrationName.QuestionMark,
                                         "Use assurance with this action?", "yes"))
                                     self.AddQEffect(AssuranceAsk());
@@ -618,8 +618,8 @@ public abstract class SkillFeats
                         {
                             if (action.ActiveRollSpecification == null) return result1;
                             int check =
-                                (sheet.Proficiencies.Get(skillTrait)
-                                    .ToNumber(self.ProficiencyLevel) + 10) - action.ActiveRollSpecification.DetermineDC(action, action.Owner, target)
+                                sheet.Proficiencies.Get(skillTrait)
+                                    .ToNumber(self.ProficiencyLevel) + 10 - action.ActiveRollSpecification.DetermineDC(action, action.Owner, target)
                                     .TotalNumber;
                             if (action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill == skill && (self.HasEffect(ModData.QEffectIds.AssuranceOn) || self.HasEffect(ModData.QEffectIds.AssuranceAsk) || (self.HasFeat(ModData.FeatNames.AssuranceThreshold) && Threshold(result1, check))))
                             {
@@ -1099,7 +1099,7 @@ public abstract class SkillFeats
             .Where(tile =>
                 tile.LooksFreeTo(player) 
                 && tile.IsAdjacentTo(enemy.Occupies)
-                && (player.HasEffect(QEffectId.Flying) || player.HasEffect(QEffectId.IgnoresDifficultTerrain) || !tile.DifficultTerrain))
+                && (player.HasEffect(QEffectId.Flying) || player.HasEffect(QEffectId.IgnoresDifficultTerrain) || player.HasFeat(FeatName.FeatherStep) || !tile.DifficultTerrain))
             .ToList();
         return floodFill;
     }

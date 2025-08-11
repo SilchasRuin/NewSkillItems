@@ -265,10 +265,7 @@ public abstract class SkillItems
             Item? item = values.Inventory.Backpack.Find(item1 => item1 != null && item1.HasTrait(MaskTrait));
             if (item != null && values.Inventory.IsBestWornItemInItsBodyPart(item))
             {
-                values.Calculated.AtEndOfRecalculation += sheetValues =>
-                {
-                    sheetValues.AddSelectionOption(maskSelections);
-                };
+                values.Calculated.AddSelectionOption(maskSelections);
             }
         });
         ModManager.RegisterNewItemIntoTheShop("Choker of Nobility", itemName =>
