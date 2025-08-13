@@ -499,14 +499,30 @@ public abstract class SkillFeats
         List<Feat> skills = [];
         foreach (Skill skill in Skills.AllSkills)
         {
-            var description = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold") ? $"You can forgo rolling for {skill.HumanizeTitleCase2()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)." : $"The minimum result you can receive on a {skill.HumanizeTitleCase2()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
-            Feat assuranceFeat = new Feat(ModManager.RegisterFeatName("Assurance - " + skill.HumanizeTitleCase2()),
+            FeatName featName = ModManager.RegisterFeatName("Assurance - " + skill.HumanizeTitleCase2());
+            Feat assuranceFeat = new Feat(featName,
                 "Even in the worst circumstances, you can perform basic tasks.",
-                description,
+                "",
                 [],
                 null).WithTag(skill);
             CreateAssuranceLogic(assuranceFeat, skill);
             skills.Add(assuranceFeat);
+            assuranceFeat.WithRulesTextCreator(sheet =>
+            {
+                string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
+                    ? $"You can forgo rolling for {skill.HumanizeTitleCase2()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)."
+                    : $"The minimum result you can receive on a {skill.HumanizeTitleCase2()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
+                int assuranceCalc = 10 + sheet.Calculated.GetProficiency(Skills.SkillToTrait(skill))
+                    .ToNumber(sheet.Calculated.CurrentLevel);
+                return $"{baseline}\nYour assurance result for {skill.ToString()} is {assuranceCalc}.";
+            });
+            ModManager.RegisterActionOnEachActionPossibility(action =>
+            {
+                if ((!DoesActionHaveBreakdownAndSkill(action, skill) &&
+                     action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill != skill) || !action.Owner.HasFeat(featName)) return;
+                int assuranceValue = 10 + action.Owner.Proficiencies.Get(Skills.SkillToTrait(skill)).ToNumber(action.Owner.ProficiencyLevel);
+                action.Description += "\nYour assurance result for this action is "+assuranceValue+".";
+            });
         }
         return skills;
     }
@@ -575,11 +591,17 @@ public abstract class SkillFeats
     private static void CreateAssuranceLogic(Feat assuranceFeat, Skill skill)
     {
         Trait skillTrait = Skills.SkillToTrait(skill);
+        string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
+            ? $"You can forgo rolling for {skill.HumanizeTitleCase2()} skill checks to instead receive a result of "
+            : $"The minimum result you can receive on a {skill.HumanizeTitleCase2()} skill check is a result of ";
         assuranceFeat.WithPrerequisite(values => values.GetProficiency(skillTrait) >= Proficiency.Trained,
                 $"You must be trained in {skill.HumanizeTitleCase2()}.")
             .WithOnCreature((sheet, self) =>
                 {
-                    self.AddQEffect( new QEffect()
+                    int assuranceCalc = 10 + sheet.GetProficiency(Skills.SkillToTrait(skill))
+                        .ToNumber(sheet.CurrentLevel);
+                    string description = $"{baseline}{assuranceCalc}.";
+                    self.AddQEffect( new QEffect("Assurance - "+skill.HumanizeTitleCase2(), description)
                     {
                         StartOfCombat = _ =>
                         {
