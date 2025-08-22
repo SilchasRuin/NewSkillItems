@@ -62,7 +62,7 @@ public abstract class SkillItems
 
                             });
                     }, 
-                    (item, _) => item.ItemModifications.All(mod => mod.Kind != ItemModificationKind.CustomPermanent))
+                    (_, _) => true)
                 .WithPermanentQEffectWhenWorn((qfCoA, _) =>
                 {
                     qfCoA.BonusToSkills = skill => skill == Skill.Performance ? new Bonus(1, BonusType.Item, "Dancing Scarf") : null;

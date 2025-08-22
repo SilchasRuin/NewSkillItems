@@ -902,12 +902,12 @@ public abstract class SkillFeats
                                 return true;
                             }).CreateActions(true).FirstOrDefault(pw =>
                                 pw.Action.ActionId == ActionId.Demoralize) as CombatAction;
-                        if (self.Battle.AllCreatures.Any(cr => cr.EnemyOf(self) && cr.DistanceTo(self) <= 6 && !cr.IsImmuneTo(Trait.Mental)))
+                        if (self.Battle.AllCreatures.Any(cr => cr.EnemyOf(self) && cr.DistanceTo(self) <= 6 && !cr.IsImmuneTo(Trait.Mental)&& !cr.IsImmuneTo(Trait.Fear) && self.CanSee(cr)) && cry != null && cry.CanBeginToUse(self))
                         {
                             if (!await self.AskForConfirmation(IllustrationName.QuestionMark,
                                     "Would you like to demoralize an enemy?", "yes"))
                                 return;
-                            await self.Battle.GameLoop.FullCast(cry!);
+                            await self.Battle.GameLoop.FullCast(cry);
                         }
                     };
                     qf.AfterYouTakeActionAgainstTarget = async (_, action, enemy, result) =>
@@ -922,12 +922,12 @@ public abstract class SkillFeats
                                 return true;
                             }).CreateActions(true).FirstOrDefault(pw =>
                                 pw.Action.ActionId == ActionId.Demoralize) as CombatAction;
-                        if (action.HasTrait(Trait.Attack) && result == CheckResult.CriticalSuccess && self.Proficiencies.Get(Trait.Intimidation) == Proficiency.Legendary && !enemy.IsImmuneTo(Trait.Mental))
+                        if (action.HasTrait(Trait.Attack) && result == CheckResult.CriticalSuccess && self.Proficiencies.Get(Trait.Intimidation) == Proficiency.Legendary && !enemy.IsImmuneTo(Trait.Mental) && !enemy.IsImmuneTo(Trait.Fear) && cry != null)
                         {
                             if (!await self.AskToUseReaction(
                                     "Would you like to use a reaction to demoralize the foe you just critically hit?"))
                                 return;
-                            await self.Battle.GameLoop.FullCast(cry!, action.ChosenTargets);
+                            await self.Battle.GameLoop.FullCast(cry, action.ChosenTargets);
                         }
                     };
                 });
