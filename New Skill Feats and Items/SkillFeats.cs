@@ -334,97 +334,90 @@ public abstract class SkillFeats
     {
         tumble.WithPrerequisite(values => values.GetProficiency(Trait.Acrobatics) >= Proficiency.Trained, "You must be at an expert in Acrobatics.")
             .WithOnCreature( cr =>
-            cr.AddQEffect(new QEffect()
+            cr.AddQEffect(new QEffect("Tumbling Teamwork", "When you tumble through an enemy, adjacent allies may as well.")
                 {
-                    StateCheckWithVisibleChanges = _ =>
+                    StateCheck = _ =>
                     {
                         cr.AddQEffect(new QEffect(ExpirationCondition.Ephemeral)
                             {
                                 AfterYouTakeAction = (effect, action) =>
-                                { 
-                                    if (action is { ActionId: ActionId.TumbleThrough, CheckResult: >= CheckResult.Success }) 
-                                    {
-                                        effect.Tag = action.ChosenTargets.ChosenCreature;
-                                        cr.AddQEffect(new QEffect()
+                                {
+                                    if (action is not
+                                        { ActionId: ActionId.TumbleThrough, CheckResult: >= CheckResult.Success })
+                                        return Task.CompletedTask;
+                                    effect.Tag = action.ChosenTargets.ChosenCreature;
+                                    QEffect tech = new();
+                                    Creature? enemy = effect.Tag as Creature;
+                                    tech.AddGrantingOfTechnical(
+                                        creature => enemy != null &&
+                                                    creature.IsAdjacentTo(enemy) &&
+                                                    creature.FriendOfAndNotSelf(cr),
+                                        qf =>
                                         {
-                                            StateCheck = qEffect =>
+                                            qf.StateCheckWithVisibleChanges = async effect1 =>
                                             {
-                                                Creature? enemy = effect.Tag as Creature;
-                                                qEffect.AddGrantingOfTechnical(
-                                                    creature => enemy != null &&
-                                                                creature.IsAdjacentTo(enemy) &&
-                                                                creature.FriendOfAndNotSelf(cr),
-                                                    qf =>
-                                                    {
-                                                        qf.AfterYouAcquireEffect = async (qEffect1, effect1) =>
+                                                {
+                                                    Creature self = effect1.Owner;
+                                                    List<Option> tileOptions =
+                                                    [
+                                                        new CancelOption(true)
+                                                    ];
+                                                    CombatAction? moveAction = Possibilities.Create(self)
+                                                        .Filter(ap =>
                                                         {
-                                                            if (qEffect1 == qf)
-                                                            {
-                                                                Creature self = effect1.Owner;
-                                                                List<Option> tileOptions =
-                                                                [
-                                                                    new CancelOption(true)
-                                                                ];
-                                                                CombatAction? moveAction = Possibilities.Create(self)
-                                                                    .Filter(ap =>
-                                                                    {
-                                                                        if (ap.CombatAction.ActionId != ActionId.Step)
-                                                                            return false;
-                                                                        ap.CombatAction.ActionCost = -2;
-                                                                        ap.RecalculateUsability();
-                                                                        return true;
-                                                                    }).CreateActions(true).FirstOrDefault(pw =>
-                                                                        pw.Action.ActionId == ActionId.Step) as CombatAction;
-                                                                if (!await self.Battle.AskToUseReaction(self,
-                                                                        "Would you like to step while remaining adjacent to the enemy who was tumbled through?"))
-                                                                {
-                                                                    qf.ExpiresAt = ExpirationCondition.Immediately;
-                                                                    qEffect.ExpiresAt = qf.ExpiresAt;
-                                                                    return;
-                                                                }
-
-                                                                CreateSteppableTiles(enemy!, self).ForEach(tile =>
-                                                                    {
-                                                                        if (moveAction == null ||
-                                                                            !(bool)moveAction.Target.CanBeginToUse(self)) return;
-                                                                        tileOptions.Add(moveAction.CreateUseOptionOn(tile)
-                                                                            .WithIllustration(moveAction.Illustration));
-                                                                    }
-                                                                );
-                                                                Option chosenTile = (await self.Battle.SendRequest(
-                                                                    new AdvancedRequest(self,
-                                                                        "Choose where to step to or right-click to cancel. You must remain adjacent to the enemy.",
-                                                                        tileOptions)
-                                                                    {
-                                                                        IsMainTurn = false,
-                                                                        IsStandardMovementRequest = true,
-                                                                        TopBarIcon = IllustrationName.FleetStep,
-                                                                        TopBarText =
-                                                                            "Choose where to step to or right-click to cancel. You must remain adjacent to the enemy.",
-                                                                    })).ChosenOption;
-                                                                switch (chosenTile)
-                                                                {
-                                                                    case CancelOption:
-                                                                        moveAction!.RevertRequested = true;
-                                                                        qf.ExpiresAt = ExpirationCondition.Immediately;
-                                                                        qEffect.ExpiresAt = qf.ExpiresAt;
-                                                                        break; 
-                                                                    case TileOption tOpt:
-                                                                        await tOpt.Action();
-                                                                        qf.ExpiresAt = ExpirationCondition.Immediately;
-                                                                        qEffect.ExpiresAt = qf.ExpiresAt;
-                                                                        break;
-                                                                }
-                                                            }
-                                                        };
-                                                    });
-                                            }
+                                                            if (ap.CombatAction.ActionId != ActionId.Step)
+                                                                return false;
+                                                            ap.CombatAction.ActionCost = -2;
+                                                            ap.RecalculateUsability();
+                                                            return true;
+                                                        }).CreateActions(true).FirstOrDefault(pw =>
+                                                            pw.Action.ActionId == ActionId.Step) as CombatAction;
+                                                    if (!await self.Battle.AskToUseReaction(self,
+                                                            "Would you like to step while remaining adjacent to the enemy who was tumbled through?"))
+                                                    {
+                                                        qf.ExpiresAt = ExpirationCondition.Immediately;
+                                                        tech.ExpiresAt = qf.ExpiresAt;
+                                                        return;
+                                                    }
+                                                    CreateSteppableTiles(enemy!, self).ForEach(tile =>
+                                                        {
+                                                            if (moveAction == null ||
+                                                                !(bool)moveAction.Target.CanBeginToUse(self)) return;
+                                                            tileOptions.Add(moveAction.CreateUseOptionOn(tile)
+                                                                .WithIllustration(moveAction.Illustration));
+                                                        }
+                                                    );
+                                                    Option chosenTile = (await self.Battle.SendRequest(
+                                                        new AdvancedRequest(self,
+                                                            "Choose where to step to or right-click to cancel. You must remain adjacent to the enemy.",
+                                                            tileOptions)
+                                                        {
+                                                            IsMainTurn = false,
+                                                            IsStandardMovementRequest = true,
+                                                            TopBarIcon = IllustrationName.FleetStep,
+                                                            TopBarText =
+                                                                "Choose where to step to or right-click to cancel. You must remain adjacent to the enemy.",
+                                                        })).ChosenOption;
+                                                    switch (chosenTile)
+                                                    {
+                                                        case CancelOption:
+                                                            moveAction!.RevertRequested = true;
+                                                            qf.ExpiresAt = ExpirationCondition.Immediately;
+                                                            tech.ExpiresAt = qf.ExpiresAt;
+                                                            break; 
+                                                        case TileOption tOpt:
+                                                            await tOpt.Action();
+                                                            qf.ExpiresAt = ExpirationCondition.Immediately;
+                                                            tech.ExpiresAt = qf.ExpiresAt;
+                                                            break;
+                                                    }
+                                                }
+                                            };
                                         });
-                                    }
+                                    effect.Owner.AddQEffect(tech);
                                     return Task.CompletedTask; 
                                 } 
                             });
-                        return Task.CompletedTask;
                     }
                 }
             )
@@ -478,7 +471,7 @@ public abstract class SkillFeats
     private static void CreateDirtyTrickLogic(Feat dirtyTrick)
     {
         dirtyTrick.WithPermanentQEffect(
-                "You confound a foe's mobility through an underhanded tactic. Attempt a Thievery check against the target's Reflex DC.",
+                "You attempt a Thievery check against the target's Reflex DC, making the target Clumsy.",
                 qf =>
                 {
                     qf.ProvideActionIntoPossibilitySection = (_, section) =>
@@ -527,7 +520,7 @@ public abstract class SkillFeats
         return skills;
     }
 
-    internal static void CreateAssuranceToggle(Creature self)
+    public static void CreateAssuranceToggle(Creature self)
     {
         if (!self.HasFeat(ModData.FeatNames.AssuranceThreshold))
         {
@@ -588,7 +581,7 @@ public abstract class SkillFeats
             });
         }
     }
-    private static void CreateAssuranceLogic(Feat assuranceFeat, Skill skill)
+    public static void CreateAssuranceLogic(Feat assuranceFeat, Skill skill)
     {
         Trait skillTrait = Skills.SkillToTrait(skill);
         string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
@@ -828,7 +821,7 @@ public abstract class SkillFeats
                 values => values.HasFeat(ModData.FeatNames.DirtyTrick) &&
                           values.GetProficiency(Trait.Acrobatics) >= Proficiency.Master,
                 "You must have the Dirty Trick feat and be a master in Acrobatics.")
-            .WithPermanentQEffect( null, qf =>
+            .WithPermanentQEffect( "When you successfully tumble through an enemy, you may use a reaction to use Dirty Trick.", qf =>
                 {
                     QEffect effect = new QEffect()
                     {
@@ -887,9 +880,10 @@ public abstract class SkillFeats
     {
         battleCry.WithPrerequisite(values => values.GetProficiency(Trait.Intimidation) >= Proficiency.Master,
                 "You must be a master in Intimidation.")
-            .WithPermanentQEffect(null, qf =>
+            .WithPermanentQEffect("You can demoralize as a free action at the start of combat.", qf =>
                 {
                     Creature self = qf.Owner;
+                    qf.Description = "You can demoralize as a free action at the start of combat." + (self.Proficiencies.Get(Trait.Intimidation) == Proficiency.Legendary ? " In addition, you can demoralize as a reaction when you critically succeed with an attack roll." : "");
                     qf.StartOfCombat = async _ =>
                     {
                         CombatAction? cry = Possibilities.Create(self)
@@ -1155,7 +1149,7 @@ public abstract class SkillFeats
     private static CombatAction CreateDirtyTrickAction(Creature self)
     {
         CombatAction dirtyTrick = new CombatAction(self, IllustrationName.BootsOfBounding, "Dirty Trick",
-                [Trait.Attack, Trait.Manipulate, Trait.AttackDoesNotTargetAC],
+                [Trait.Attack, Trait.Manipulate, Trait.AttackDoesNotTargetAC, Trait.Basic],
                 $"Attempt a Thievery check ({S.SkillBonus(self, Skill.Thievery)}) against the target's Reflex DC." +
                 S.FourDegreesOfSuccess("The target is clumsy 1 until they use an Interact action to end the impediment", "As critical success, but the condition ends automatically after 1 round.", null, "You fall prone as your attempt backfires."),
                 Target.AdjacentCreature().WithAdditionalConditionOnTargetCreature((a, d) => !a.HasFreeHand ? Usability.CommonReasons.NoFreeHandForManeuver : !d.EnemyOf(a) ? Usability.NotUsableOnThisCreature("May only target enemies") : Usability.Usable))
