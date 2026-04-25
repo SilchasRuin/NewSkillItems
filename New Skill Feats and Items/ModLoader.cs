@@ -1,5 +1,6 @@
 ﻿using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Core.CharacterBuilder.Selections.Options;
+using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Core.Mechanics.Treasure;
 using Dawnsbury.Modding;
 
@@ -30,5 +31,13 @@ public class ModLoader
         //         SkillFeats.Assurance?.Subfeats?.Add(feat);
         //     }
         // };
+    }
+
+    public static Feat RegisterNewAssurance(Skill skill)
+    {
+        Feat assuranceFeat = SkillFeats.AssuranceCreator(skill);
+        ModManager.AddFeat(assuranceFeat);
+        SkillFeats.Assurance?.Subfeats?.Add(assuranceFeat);
+        return assuranceFeat;
     }
 }
