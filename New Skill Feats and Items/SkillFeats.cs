@@ -30,8 +30,9 @@ using Dawnsbury.Modding;
 
 namespace New_Skill_Feats_and_Items;
 
-public abstract class SkillFeats
+public static class SkillFeats
 {
+    public static Feat? Assurance { get; set; }
     public static IEnumerable<Feat> CreateSkillFeats()
     {
         //skill feats
@@ -91,13 +92,13 @@ public abstract class SkillFeats
                 "Choose a skill you’re trained in. The minimum result you can receive on a skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)." +
                 "\n{b}Special{/b} You can select this feat multiple times. Each time, choose a different skill and gain the benefits for that skill.";
         }
-        Feat assurance = new TrueFeat(ModData.FeatNames.Assurance, 1,
+        Assurance = new TrueFeat(ModData.FeatNames.Assurance, 1,
             "Even in the worst circumstances, you can perform basic tasks.",
             description, [Trait.General, Trait.Skill], AssuranceFeats());
-        assurance.CanSelectMultipleTimes = true;
+        Assurance.CanSelectMultipleTimes = true;
         if (!PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold"))
         {
-            assurance.WithOnSheet(values =>
+            Assurance.WithOnSheet(values =>
             {
                 SelectionOption setup = new SingleFeatSelectionOption("AssuranceStart",
                         "Default Assurance Setting",
@@ -108,9 +109,9 @@ public abstract class SkillFeats
         }
         else
         {
-            assurance.WithOnSheet(values => values.GrantFeat(ModData.FeatNames.AssuranceThreshold));
+            Assurance.WithOnSheet(values => values.GrantFeat(ModData.FeatNames.AssuranceThreshold));
         }
-        yield return assurance;
+        yield return Assurance;
         //assurance combat prep feats
         Feat assuranceOn = new Feat(ModData.FeatNames.AssuranceOn, null,
             "Assurance is applied to all relevant skill checks. You can change this setting with a free action under other maneuvers.",
@@ -190,7 +191,7 @@ public abstract class SkillFeats
                 }
             );
         yield return trickster;
-        foreach (Feat feat in assurance.Subfeats!)
+        foreach (Feat feat in Assurance.Subfeats!)
         {
             BackgroundSelectionFeat devoted = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                     ModManager.RegisterFeatName((feat.Tag is Skill featTag ? featTag : Skill.Acrobatics)
@@ -206,7 +207,7 @@ public abstract class SkillFeats
                 )
                 .WithOnSheet(sheet =>
                     {
-                     sheet.GrantFeat(assurance.FeatName, feat.FeatName);
+                     sheet.GrantFeat(Assurance.FeatName, feat.FeatName);
                      sheet.TrainInThisOrSubstitute((Skill)(feat.Tag ?? Skill.Acrobatics));
                     }
                 );
@@ -487,36 +488,10 @@ public abstract class SkillFeats
             .WithPrerequisite(values => values.GetProficiency(Trait.Thievery) >= Proficiency.Trained,
                 "You must be trained in Thievery.");
     }
-    private static List<Feat> AssuranceFeats()
+    public static List<Feat> AssuranceFeats()
     {
         List<Feat> skills = [];
-        foreach (Skill skill in Skills.AllSkills)
-        {
-            FeatName featName = ModManager.RegisterFeatName("Assurance - " + skill.HumanizeTitleCase2());
-            Feat assuranceFeat = new Feat(featName,
-                "Even in the worst circumstances, you can perform basic tasks.",
-                "",
-                [],
-                null).WithTag(skill);
-            CreateAssuranceLogic(assuranceFeat, skill);
-            skills.Add(assuranceFeat);
-            assuranceFeat.WithRulesTextCreator(sheet =>
-            {
-                string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
-                    ? $"You can forgo rolling for {skill.HumanizeTitleCase2()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)."
-                    : $"The minimum result you can receive on a {skill.HumanizeTitleCase2()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
-                int assuranceCalc = 10 + sheet.Calculated.GetProficiency(Skills.SkillToTrait(skill))
-                    .ToNumber(sheet.Calculated.CurrentLevel);
-                return $"{baseline}\nYour assurance result for {skill.ToString()} is {assuranceCalc}.";
-            });
-            ModManager.RegisterActionOnEachActionPossibility(action =>
-            {
-                if ((!DoesActionHaveBreakdownAndSkill(action, skill) &&
-                     action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill != skill) || !action.Owner.HasFeat(featName)) return;
-                int assuranceValue = 10 + action.Owner.Proficiencies.Get(Skills.SkillToTrait(skill)).ToNumber(action.Owner.ProficiencyLevel);
-                action.Description += "\nYour assurance result for this action is "+assuranceValue+".";
-            });
-        }
+        skills.AddRange(Skills.AllSkills.Select(AssuranceCreator));
         return skills;
     }
 
@@ -581,7 +556,7 @@ public abstract class SkillFeats
             });
         }
     }
-    public static void CreateAssuranceLogic(Feat assuranceFeat, Skill skill)
+    private static void CreateAssuranceLogic(Feat assuranceFeat, Skill skill)
     {
         Trait skillTrait = Skills.SkillToTrait(skill);
         string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
@@ -1144,7 +1119,35 @@ public abstract class SkillFeats
                     );
                     creature.PersistentUsedUpResources.UsedUpActions.Add("Root Magic");
                 });
-            return rootFreeAction;
+            return rootFreeAction; 
+    }
+
+    public static Feat AssuranceCreator(Skill skill)
+    {
+        FeatName featName = ModManager.RegisterFeatName("Assurance - " + skill.HumanizeTitleCase2());
+        Feat assuranceFeat = new Feat(featName,
+            "Even in the worst circumstances, you can perform basic tasks.",
+            "",
+            [],
+            null).WithTag(skill);
+        CreateAssuranceLogic(assuranceFeat, skill);
+        assuranceFeat.WithRulesTextCreator(sheet =>
+        {
+            string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
+                ? $"You can forgo rolling for {skill.HumanizeTitleCase2()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)."
+                : $"The minimum result you can receive on a {skill.HumanizeTitleCase2()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
+            int assuranceCalc = 10 + sheet.Calculated.GetProficiency(Skills.SkillToTrait(skill))
+                .ToNumber(sheet.Calculated.CurrentLevel);
+            return $"{baseline}\nYour assurance result for {skill.ToString()} is {assuranceCalc}.";
+        });
+        ModManager.RegisterActionOnEachActionPossibility(action =>
+        {
+            if ((!DoesActionHaveBreakdownAndSkill(action, skill) &&
+                 action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill != skill) || !action.Owner.HasFeat(featName)) return;
+            int assuranceValue = 10 + action.Owner.Proficiencies.Get(Skills.SkillToTrait(skill)).ToNumber(action.Owner.ProficiencyLevel);
+            action.Description += "\nYour assurance result for this action is "+assuranceValue+".";
+        });
+        return  assuranceFeat;
     }
     private static CombatAction CreateDirtyTrickAction(Creature self)
     {

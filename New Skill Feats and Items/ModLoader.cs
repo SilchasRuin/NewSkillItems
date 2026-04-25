@@ -22,5 +22,13 @@ public class ModLoader
         });
         ModManager.RegisterBooleanSettingsOption("AssuranceThreshold", "Skill Feats - Assurance Threshold", "Enabling this option changes the functionality of assurance, instead of deciding to use assurance or not, assurance will be automatically applied if it would be beneficial and not applied otherwise. This makes assurance less fiddly and more powerful." +
             "\n{b}NOTE{/b}: You must reload to remove selection options associated with assurance's default behavior.", false);
+        // LoadOrder.WhenFeatsBecomeLoaded += () =>
+        // {
+        //     foreach (Feat feat in SkillFeats.AssuranceFeats().Where(ft =>
+        //                  SkillFeats.Assurance?.Subfeats != null && !SkillFeats.Assurance.Subfeats.Contains(ft)))
+        //     {
+        //         SkillFeats.Assurance?.Subfeats?.Add(feat);
+        //     }
+        // };
     }
 }
