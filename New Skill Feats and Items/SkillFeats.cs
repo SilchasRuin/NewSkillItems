@@ -560,16 +560,16 @@ public static class SkillFeats
     {
         Trait skillTrait = Skills.SkillToTrait(skill);
         string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
-            ? $"You can forgo rolling for {skill.HumanizeTitleCase2()} skill checks to instead receive a result of "
-            : $"The minimum result you can receive on a {skill.HumanizeTitleCase2()} skill check is a result of ";
+            ? $"You can forgo rolling for {skill.ToString()} skill checks to instead receive a result of "
+            : $"The minimum result you can receive on a {skill.ToString()} skill check is a result of ";
         assuranceFeat.WithPrerequisite(values => values.GetProficiency(skillTrait) >= Proficiency.Trained,
-                $"You must be trained in {skill.HumanizeTitleCase2()}.")
+                $"You must be trained in {skill.ToString()}.")
             .WithOnCreature((sheet, self) =>
                 {
                     int assuranceCalc = 10 + sheet.GetProficiency(Skills.SkillToTrait(skill))
                         .ToNumber(sheet.CurrentLevel);
-                    string description = $"{baseline}{assuranceCalc}.";
-                    self.AddQEffect( new QEffect("Assurance - "+skill.HumanizeTitleCase2(), description)
+                    string description = $"{baseline}{{Blue}}{assuranceCalc}{{/Blue}}.";
+                    self.AddQEffect( new QEffect("Assurance - "+skill, description)
                     {
                         StartOfCombat = _ =>
                         {
@@ -1124,7 +1124,7 @@ public static class SkillFeats
 
     public static Feat AssuranceCreator(Skill skill)
     {
-        FeatName featName = ModManager.RegisterFeatName("Assurance - " + skill.HumanizeTitleCase2());
+        FeatName featName = ModManager.RegisterFeatName("Assurance - " + skill.ToString());
         Feat assuranceFeat = new Feat(featName,
             "Even in the worst circumstances, you can perform basic tasks.",
             "",
@@ -1134,19 +1134,20 @@ public static class SkillFeats
         assuranceFeat.WithRulesTextCreator(sheet =>
         {
             string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
-                ? $"You can forgo rolling for {skill.HumanizeTitleCase2()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)."
-                : $"The minimum result you can receive on a {skill.HumanizeTitleCase2()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
+                ? $"You can forgo rolling for {skill.ToString()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)."
+                : $"The minimum result you can receive on a {skill.ToString()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
             int assuranceCalc = 10 + sheet.Calculated.GetProficiency(Skills.SkillToTrait(skill))
                 .ToNumber(sheet.Calculated.CurrentLevel);
-            return $"{baseline}\nYour assurance result for {skill.ToString()} is {assuranceCalc}.";
+            return $"{baseline}\nYour assurance result for {skill.ToString()} is {{Blue}}{assuranceCalc}{{/Blue}}.";
         });
         ModManager.RegisterActionOnEachActionPossibility(action =>
         {
             if ((!DoesActionHaveBreakdownAndSkill(action, skill) &&
                  action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill != skill) || !action.Owner.HasFeat(featName)) return;
             int assuranceValue = 10 + action.Owner.Proficiencies.Get(Skills.SkillToTrait(skill)).ToNumber(action.Owner.ProficiencyLevel);
-            action.Description += "\nYour assurance result for this action is "+assuranceValue+".";
+            action.Description += "\nYour assurance result for this action is {Blue}"+assuranceValue+"{/Blue}.";
         });
+        assuranceFeat.WithZOrder(1);
         return  assuranceFeat;
     }
     private static CombatAction CreateDirtyTrickAction(Creature self)

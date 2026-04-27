@@ -33,9 +33,10 @@ public class ModLoader
         // };
     }
 
-    public static Feat RegisterNewAssurance(Skill skill)
+    public static Feat RegisterNewAssurance(Skill skill, Action<Feat>? adjustSubfeat = null)
     {
         Feat assuranceFeat = SkillFeats.AssuranceCreator(skill);
+        adjustSubfeat?.Invoke(assuranceFeat);
         ModManager.AddFeat(assuranceFeat);
         SkillFeats.Assurance?.Subfeats?.Add(assuranceFeat);
         return assuranceFeat;
