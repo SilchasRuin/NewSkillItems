@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using Dawnsbury.Audio;
 using Dawnsbury.Auxiliary;
 using Dawnsbury.Campaign.Path;
@@ -92,9 +93,31 @@ public static class SkillFeats
                 "Choose a skill you’re trained in. The minimum result you can receive on a skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)." +
                 "\n{b}Special{/b} You can select this feat multiple times. Each time, choose a different skill and gain the benefits for that skill.";
         }
+        string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
+            ? "You can forgo rolling for the following skill checks to instead receive an automatic result: "
+            : "The following skill checks cannot roll less than your assurance value: ";
         Assurance = new TrueFeat(ModData.FeatNames.Assurance, 1,
             "Even in the worst circumstances, you can perform basic tasks.",
-            description, [Trait.General, Trait.Skill], AssuranceFeats());
+            description, [Trait.General, Trait.Skill]/*, AssuranceFeats()*/)
+            .WithPermanentQEffect(baseline,qfFeat =>
+            {
+                if (qfFeat.Owner.HasEffect(ModData.QEffectIds.AssuranceFeat))
+                {
+                    qfFeat.Innate = false;
+                    qfFeat.Description = null;
+                    return;
+                }
+                if (qfFeat.Owner.PersistentCharacterSheet?.Calculated.AllFeats is { } myFeats)
+                {
+                    qfFeat.Description +=
+                        S.ConstructOrList(
+                            myFeats.Where(ft => ft.Tag is Skill _).Select(ft =>
+                                ((Skill)(ft.Tag ?? Skill.Acrobatics)).ToStringOrTechnical() + " (" + $"{{Blue}}{10 + qfFeat.Owner.PersistentCharacterSheet.Calculated.GetProficiency(Skills.SkillToTrait((Skill)(ft.Tag ?? Skill.Acrobatics)))
+                                    .ToNumber(qfFeat.Owner.PersistentCharacterSheet.Calculated.CurrentLevel)}{{/Blue}}" + ")"), "and");
+                }
+                qfFeat.Description += ".";
+                qfFeat.Id = ModData.QEffectIds.AssuranceFeat;
+            });
         Assurance.CanSelectMultipleTimes = true;
         if (!PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold"))
         {
@@ -104,13 +127,15 @@ public static class SkillFeats
                         "Default Assurance Setting",
                         SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, ft => ft.Tag is "Assurance Settings")
                     .WithIsOptional();
-                values.AddSelectionOption(setup);
+                if (values.AllFeats.Count(ft => ft.FeatName == ModData.FeatNames.Assurance) <= 1)
+                    values.AddSelectionOption(setup);
             });
         }
         else
         {
             Assurance.WithOnSheet(values => values.GrantFeat(ModData.FeatNames.AssuranceThreshold));
         }
+        
         yield return Assurance;
         //assurance combat prep feats
         Feat assuranceOn = new Feat(ModData.FeatNames.AssuranceOn, null,
@@ -191,28 +216,28 @@ public static class SkillFeats
                 }
             );
         yield return trickster;
-        foreach (Feat feat in Assurance.Subfeats!)
-        {
-            BackgroundSelectionFeat devoted = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
-                    ModManager.RegisterFeatName((feat.Tag is Skill featTag ? featTag : Skill.Acrobatics)
-                                                .HumanizeTitleCase2() + " Focus"), "You spent long hours mastering "+(feat.Tag is Skill skill ? skill : Skill.Acrobatics)
-                        .HumanizeTitleCase2() + " and now you can almost do it in your sleep.", $"You're trained in {{b}}{(feat.Tag is Skill tag ? tag : Skill.Acrobatics)
-                            .HumanizeTitleCase2()}{{/b}}. You gain the {{b}}Assurance{{/b}} skill feat for {(feat.Tag is Skill tag1 ? tag1 : Skill.Acrobatics)
-                            .HumanizeTitleCase2()}.",
-                    [
-                        new LimitedAbilityBoost(Ability.Constitution,
-                            (feat.Tag is Skill skill1 ? skill1 : Skill.Acrobatics).ToAbility()),
-                        new FreeAbilityBoost()
-                    ]
-                )
-                .WithOnSheet(sheet =>
-                    {
-                     sheet.GrantFeat(Assurance.FeatName, feat.FeatName);
-                     sheet.TrainInThisOrSubstitute((Skill)(feat.Tag ?? Skill.Acrobatics));
-                    }
-                );
-            yield return devoted;
-        }
+        // foreach (Feat feat in AssuranceFeats())
+        // {
+        //     BackgroundSelectionFeat devoted = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
+        //             ModManager.RegisterFeatName((feat.Tag is Skill featTag ? featTag : Skill.Acrobatics)
+        //                                         .HumanizeTitleCase2() + " Focus"), "You spent long hours mastering "+(feat.Tag is Skill skill ? skill : Skill.Acrobatics)
+        //                 .HumanizeTitleCase2() + " and now you can almost do it in your sleep.", $"You're trained in {{b}}{(feat.Tag is Skill tag ? tag : Skill.Acrobatics)
+        //                     .HumanizeTitleCase2()}{{/b}}. You gain the {{b}}Assurance{{/b}} skill feat for {(feat.Tag is Skill tag1 ? tag1 : Skill.Acrobatics)
+        //                     .HumanizeTitleCase2()}.",
+        //             [
+        //                 new LimitedAbilityBoost(Ability.Constitution,
+        //                     (feat.Tag is Skill skill1 ? skill1 : Skill.Acrobatics).ToAbility()),
+        //                 new FreeAbilityBoost()
+        //             ]
+        //         )
+        //         .WithOnSheet(sheet =>
+        //             {
+        //              sheet.GrantFeat(Assurance.FeatName, feat.FeatName);
+        //              sheet.TrainInThisOrSubstitute((Skill)(feat.Tag ?? Skill.Acrobatics));
+        //             }
+        //         );
+        //     yield return devoted;
+        // }
         BackgroundSelectionFeat warrior = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                 ModManager.RegisterFeatName("Warrior{b}{/b}"),
                 "In your younger days, you waded into battle as a mercenary, a warrior defending a nomadic people, or a member of a militia or army. You might have wanted to break out from the regimented structure of these forces, or you could have always been as independent a warrior as you are now.",
@@ -488,12 +513,13 @@ public static class SkillFeats
             .WithPrerequisite(values => values.GetProficiency(Trait.Thievery) >= Proficiency.Trained,
                 "You must be trained in Thievery.");
     }
-    public static List<Feat> AssuranceFeats()
+    public static void AssuranceFeats()
     {
-        List<Feat> skills = [];
-        skills.AddRange(Skills.AllSkills.Select(AssuranceCreator));
-        return skills;
+        List<Feat> skills = Skills.AllSkills.Select(AssuranceCreator).ToList();
+        StaticAssuranceFeats = skills.ToList();
     }
+
+    public static List<Feat> StaticAssuranceFeats = [];
 
     public static void CreateAssuranceToggle(Creature self)
     {
@@ -559,18 +585,19 @@ public static class SkillFeats
     private static void CreateAssuranceLogic(Feat assuranceFeat, Skill skill)
     {
         Trait skillTrait = Skills.SkillToTrait(skill);
-        string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
-            ? $"You can forgo rolling for {skill.ToString()} skill checks to instead receive a result of "
-            : $"The minimum result you can receive on a {skill.ToString()} skill check is a result of ";
+        // string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
+        //     ? $"You can forgo rolling for {skill.ToStringOrTechnical()} skill checks to instead receive a result of "
+        //     : $"The minimum result you can receive on a {skill.ToStringOrTechnical()} skill check is a result of ";
         assuranceFeat.WithPrerequisite(values => values.GetProficiency(skillTrait) >= Proficiency.Trained,
-                $"You must be trained in {skill.ToString()}.")
+                $"You must be trained in {skill.ToStringOrTechnical()}.")
             .WithOnCreature((sheet, self) =>
                 {
-                    int assuranceCalc = 10 + sheet.GetProficiency(Skills.SkillToTrait(skill))
-                        .ToNumber(sheet.CurrentLevel);
-                    string description = $"{baseline}{{Blue}}{assuranceCalc}{{/Blue}}.";
-                    self.AddQEffect( new QEffect("Assurance - "+skill, description)
+                    // int assuranceCalc = 10 + sheet.GetProficiency(Skills.SkillToTrait(skill))
+                    //     .ToNumber(sheet.CurrentLevel);
+                    // string description = $"{baseline}{{Blue}}{assuranceCalc}{{/Blue}}.";
+                    self.AddQEffect( new QEffect("Assurance - "+skill.ToStringOrTechnical(), "[No Description]")
                     {
+                        Innate = false,
                         StartOfCombat = _ =>
                         {
                             if (self.HasFeat(ModData.FeatNames.AssuranceOn) && !self.HasEffect(ModData.QEffectIds.AssuranceOn) && !self.HasFeat(ModData.FeatNames.AssuranceThreshold))
@@ -1124,7 +1151,7 @@ public static class SkillFeats
 
     public static Feat AssuranceCreator(Skill skill)
     {
-        FeatName featName = ModManager.RegisterFeatName("Assurance - " + skill.ToString());
+        FeatName featName = ModManager.RegisterFeatName("Assurance - " + skill.ToStringOrTechnical(), skill.ToStringOrTechnical());
         Feat assuranceFeat = new Feat(featName,
             "Even in the worst circumstances, you can perform basic tasks.",
             "",
@@ -1134,11 +1161,11 @@ public static class SkillFeats
         assuranceFeat.WithRulesTextCreator(sheet =>
         {
             string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
-                ? $"You can forgo rolling for {skill.ToString()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)."
-                : $"The minimum result you can receive on a {skill.ToString()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
+                ? $"You can forgo rolling for {skill.ToStringOrTechnical()} skill checks to instead receive a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers)."
+                : $"The minimum result you can receive on a {skill.ToStringOrTechnical()} skill check is a result of 10 + your proficiency bonus (do not apply any other bonuses, penalties, or modifiers).";
             int assuranceCalc = 10 + sheet.Calculated.GetProficiency(Skills.SkillToTrait(skill))
                 .ToNumber(sheet.Calculated.CurrentLevel);
-            return $"{baseline}\nYour assurance result for {skill.ToString()} is {{Blue}}{assuranceCalc}{{/Blue}}.";
+            return $"{baseline}\nYour assurance result for {skill.ToStringOrTechnical()} is {{Blue}}{assuranceCalc}{{/Blue}}.";
         });
         ModManager.RegisterActionOnEachActionPossibility(action =>
         {
@@ -1147,7 +1174,7 @@ public static class SkillFeats
             int assuranceValue = 10 + action.Owner.Proficiencies.Get(Skills.SkillToTrait(skill)).ToNumber(action.Owner.ProficiencyLevel);
             action.Description += "\nYour assurance result for this action is {Blue}"+assuranceValue+"{/Blue}.";
         });
-        assuranceFeat.WithZOrder(1);
+        // assuranceFeat.WithZOrder(1);
         return  assuranceFeat;
     }
     private static CombatAction CreateDirtyTrickAction(Creature self)
