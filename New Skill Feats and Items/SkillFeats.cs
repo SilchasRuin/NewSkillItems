@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Dawnsbury.Audio;
 using Dawnsbury.Auxiliary;
 using Dawnsbury.Campaign.Path;
@@ -23,7 +22,6 @@ using Dawnsbury.Core.Mechanics.Targeting;
 using Dawnsbury.Core.Mechanics.Targeting.Targets;
 using Dawnsbury.Core.Possibilities;
 using Dawnsbury.Core.Tiles;
-using Dawnsbury.Display;
 using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Display.Text;
 using Dawnsbury.IO;
@@ -98,7 +96,7 @@ public static class SkillFeats
             : "The following skill checks cannot roll less than your assurance value: ";
         Assurance = new TrueFeat(ModData.FeatNames.Assurance, 1,
             "Even in the worst circumstances, you can perform basic tasks.",
-            description, [Trait.General, Trait.Skill]/*, AssuranceFeats()*/)
+            description, [Trait.General, Trait.Skill])
             .WithPermanentQEffect(baseline,qfFeat =>
             {
                 if (qfFeat.Owner.HasEffect(ModData.QEffectIds.AssuranceFeat))
@@ -111,7 +109,7 @@ public static class SkillFeats
                 {
                     qfFeat.Description +=
                         S.ConstructOrList(
-                            myFeats.Where(ft => ft.Tag is Skill _).Select(ft =>
+                            myFeats.Where(ft => ft.Tag is Skill _ && ft.FeatName.ToStringOrTechnical().Contains("Assurance")).Select(ft =>
                                 ((Skill)(ft.Tag ?? Skill.Acrobatics)).ToStringOrTechnical() + " (" + $"{{Blue}}{10 + qfFeat.Owner.PersistentCharacterSheet.Calculated.GetProficiency(Skills.SkillToTrait((Skill)(ft.Tag ?? Skill.Acrobatics)))
                                     .ToNumber(qfFeat.Owner.PersistentCharacterSheet.Calculated.CurrentLevel)}{{/Blue}}" + ")"), "and");
                 }
@@ -166,12 +164,6 @@ public static class SkillFeats
             [Trait.Skill, Trait.General, Trait.Homebrew]).WithActionCost(-2);
         CreateTumblingTrickLogic(tumblingTrick);
         yield return tumblingTrick;
-        Feat battleCry = new TrueFeat(ModManager.RegisterFeatName("Battle Cry"), 7,
-            "RAAAAH! Your ferocious shout as you rush into the fray strikes terror in your enemies' hearts.",
-            "At the start of combat, you can yell a mighty battle cry and Demoralize an observed foe as a free action. If you're legendary in Intimidation, you can use a reaction to Demoralize your foe when you critically succeed at an attack roll.",
-            [Trait.General, Trait.Skill]);
-        CreateBattleCryLogic(battleCry);
-        yield return battleCry;
         Feat terrifyingResistance = new TrueFeat(ModManager.RegisterFeatName("Terrifying Resistance"), 2,
             "The spells of those you have Demoralized are less effective on you.",
             "If you succeed in Demoralizing a creature, for the next 24 hours you gain a +1 circumstance bonus to saving throws against that creature's spells.",
@@ -203,6 +195,7 @@ public static class SkillFeats
                     sheet.GrantFeat(virtuoso.FeatName);
                 }
             );
+        performer.FeatGroup = new FeatGroup("Trade", 0);
         yield return performer;
         BackgroundSelectionFeat trickster = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                 ModManager.RegisterFeatName("Trickster"),
@@ -215,29 +208,8 @@ public static class SkillFeats
                     sheet.GrantFeat(dirtyTrick.FeatName);
                 }
             );
+        trickster.FeatGroup = new FeatGroup("Outcast", 0);
         yield return trickster;
-        // foreach (Feat feat in AssuranceFeats())
-        // {
-        //     BackgroundSelectionFeat devoted = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
-        //             ModManager.RegisterFeatName((feat.Tag is Skill featTag ? featTag : Skill.Acrobatics)
-        //                                         .HumanizeTitleCase2() + " Focus"), "You spent long hours mastering "+(feat.Tag is Skill skill ? skill : Skill.Acrobatics)
-        //                 .HumanizeTitleCase2() + " and now you can almost do it in your sleep.", $"You're trained in {{b}}{(feat.Tag is Skill tag ? tag : Skill.Acrobatics)
-        //                     .HumanizeTitleCase2()}{{/b}}. You gain the {{b}}Assurance{{/b}} skill feat for {(feat.Tag is Skill tag1 ? tag1 : Skill.Acrobatics)
-        //                     .HumanizeTitleCase2()}.",
-        //             [
-        //                 new LimitedAbilityBoost(Ability.Constitution,
-        //                     (feat.Tag is Skill skill1 ? skill1 : Skill.Acrobatics).ToAbility()),
-        //                 new FreeAbilityBoost()
-        //             ]
-        //         )
-        //         .WithOnSheet(sheet =>
-        //             {
-        //              sheet.GrantFeat(Assurance.FeatName, feat.FeatName);
-        //              sheet.TrainInThisOrSubstitute((Skill)(feat.Tag ?? Skill.Acrobatics));
-        //             }
-        //         );
-        //     yield return devoted;
-        // }
         BackgroundSelectionFeat warrior = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                 ModManager.RegisterFeatName("Warrior{b}{/b}"),
                 "In your younger days, you waded into battle as a mercenary, a warrior defending a nomadic people, or a member of a militia or army. You might have wanted to break out from the regimented structure of these forces, or you could have always been as independent a warrior as you are now.",
@@ -250,23 +222,22 @@ public static class SkillFeats
                     sheet.GrantFeat(FeatName.IntimidatingGlare);
                 }
             );
+        warrior.FeatGroup = new FeatGroup("Military", 0);
         yield return warrior;
-        if (ModManager.TryParse("BonMot", out FeatName bonMot))
-        {
-            BackgroundSelectionFeat runawayNoble = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
+        BackgroundSelectionFeat runawayNoble = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                 ModManager.RegisterFeatName("Runaway Noble"),
                 "There are many reasons for noble blood to abandon their responsibilities. Whether you fled for safety, for love, to sate a spontaneous spark of rebellion, or to escape unbearable expectations, you’ve left your lavish life behind for one of newfound experiences. However, how prepared you are for a life on the road is something else entirely.",
                 "You're trained in {b}Diplomacy{/b}. You gain the {b}Bon Mot{/b} skill feat.",
                 [new LimitedAbilityBoost(Ability.Charisma, Ability.Intelligence), new FreeAbilityBoost()]
-                )
-                .WithOnSheet(sheet =>
-                    {
-                        sheet.TrainInThisOrSubstitute(Skill.Diplomacy);
-                        sheet.GrantFeat(bonMot);
-                    }
-                );
-            yield return runawayNoble;
-        }
+            )
+            .WithOnSheet(sheet =>
+                {
+                    sheet.TrainInThisOrSubstitute(Skill.Diplomacy);
+                    sheet.GrantFeat(FeatName.BonMot);
+                }
+            );
+        runawayNoble.FeatGroup = new FeatGroup("Noble", 0);
+        yield return runawayNoble;
         BackgroundSelectionFeat rootWorker = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                 ModManager.RegisterFeatName("Root Worker"),
                 "Some ailments can't be cured by herbs alone. You learned ritual remedies as well, calling on nature spirits to soothe aches and ward off the evil eye. Taking up with adventurers has given you company on the road, as well as protection from those who would brand you a fake—or worse.",
@@ -279,6 +250,7 @@ public static class SkillFeats
                     sheet.GrantFeat(rootMagic.FeatName);
                 }
             );
+        rootWorker.FeatGroup = new FeatGroup("Intellectual", 0);
         yield return rootWorker;
         //selection option feats for scoundrel's mask
         yield return new Feat(ModManager.RegisterFeatName("Off"), null,"The default behavior for Scoundrel's Mask is off; it will not apply the damage from the item unless it is toggled on.", [SkillItems.MaskTrait], null).WithPermanentQEffect(null,cr => cr.StartOfCombat = effect =>
@@ -585,16 +557,10 @@ public static class SkillFeats
     private static void CreateAssuranceLogic(Feat assuranceFeat, Skill skill)
     {
         Trait skillTrait = Skills.SkillToTrait(skill);
-        // string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
-        //     ? $"You can forgo rolling for {skill.ToStringOrTechnical()} skill checks to instead receive a result of "
-        //     : $"The minimum result you can receive on a {skill.ToStringOrTechnical()} skill check is a result of ";
         assuranceFeat.WithPrerequisite(values => values.GetProficiency(skillTrait) >= Proficiency.Trained,
                 $"You must be trained in {skill.ToStringOrTechnical()}.")
             .WithOnCreature((sheet, self) =>
                 {
-                    // int assuranceCalc = 10 + sheet.GetProficiency(Skills.SkillToTrait(skill))
-                    //     .ToNumber(sheet.CurrentLevel);
-                    // string description = $"{baseline}{{Blue}}{assuranceCalc}{{/Blue}}.";
                     self.AddQEffect( new QEffect("Assurance - "+skill.ToStringOrTechnical(), "[No Description]")
                     {
                         Innate = false,
@@ -877,56 +843,6 @@ public static class SkillFeats
                     qf.Owner.AddQEffect(effect);
                 }
                 );
-    }
-    private static void CreateBattleCryLogic(Feat battleCry)
-    {
-        battleCry.WithPrerequisite(values => values.GetProficiency(Trait.Intimidation) >= Proficiency.Master,
-                "You must be a master in Intimidation.")
-            .WithPermanentQEffect("You can demoralize as a free action at the start of combat.", qf =>
-                {
-                    Creature self = qf.Owner;
-                    qf.Description = "You can demoralize as a free action at the start of combat." + (self.Proficiencies.Get(Trait.Intimidation) == Proficiency.Legendary ? " In addition, you can demoralize as a reaction when you critically succeed with an attack roll." : "");
-                    qf.StartOfCombat = async _ =>
-                    {
-                        CombatAction? cry = Possibilities.Create(self)
-                            .Filter(ap =>
-                            {
-                                if (ap.CombatAction.ActionId != ActionId.Demoralize)
-                                    return false;
-                                ap.CombatAction.ActionCost = 0;
-                                ap.RecalculateUsability();
-                                return true;
-                            }).CreateActions(true).FirstOrDefault(pw =>
-                                pw.Action.ActionId == ActionId.Demoralize) as CombatAction;
-                        if (self.Battle.AllCreatures.Any(cr => cr.EnemyOf(self) && cr.DistanceTo(self) <= 6 && !cr.IsImmuneTo(Trait.Mental)&& !cr.IsImmuneTo(Trait.Fear) && self.CanSee(cr)) && cry != null && cry.CanBeginToUse(self))
-                        {
-                            if (!await self.AskForConfirmation(IllustrationName.QuestionMark,
-                                    "Would you like to demoralize an enemy?", "yes"))
-                                return;
-                            await self.Battle.GameLoop.FullCast(cry);
-                        }
-                    };
-                    qf.AfterYouTakeActionAgainstTarget = async (_, action, enemy, result) =>
-                    {
-                        CombatAction? cry = Possibilities.Create(self)
-                            .Filter(ap =>
-                            {
-                                if (ap.CombatAction.ActionId != ActionId.Demoralize)
-                                    return false;
-                                ap.CombatAction.ActionCost = 0;
-                                ap.RecalculateUsability();
-                                return true;
-                            }).CreateActions(true).FirstOrDefault(pw =>
-                                pw.Action.ActionId == ActionId.Demoralize) as CombatAction;
-                        if (action.HasTrait(Trait.Attack) && result == CheckResult.CriticalSuccess && self.Proficiencies.Get(Trait.Intimidation) == Proficiency.Legendary && !enemy.IsImmuneTo(Trait.Mental) && !enemy.IsImmuneTo(Trait.Fear) && cry != null)
-                        {
-                            if (!await self.AskToUseReaction(
-                                    "Would you like to use a reaction to demoralize the foe you just critically hit?"))
-                                return;
-                            await self.Battle.GameLoop.FullCast(cry, action.ChosenTargets);
-                        }
-                    };
-                });
     }
 
     private static void CreateTerrifyingResistanceLogic(Feat terrifyingResistance)

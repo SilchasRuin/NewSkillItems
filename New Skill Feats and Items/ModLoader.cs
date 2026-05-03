@@ -1,8 +1,6 @@
 ﻿using Dawnsbury.Core.CharacterBuilder.AbilityScores;
 using Dawnsbury.Core.CharacterBuilder.Feats;
-using Dawnsbury.Core.CharacterBuilder.Selections.Options;
 using Dawnsbury.Core.Mechanics.Enumerations;
-using Dawnsbury.Core.Mechanics.Treasure;
 using Dawnsbury.Display;
 using Dawnsbury.Modding;
 
@@ -29,13 +27,10 @@ public class ModLoader
         LoadOrder.WhenFeatsBecomeLoaded += () =>
         {
             SkillFeats.StaticAssuranceFeats.Sort((feat, feat1) => string.Compare(feat.Name, feat1.Name, StringComparison.Ordinal));
-            // for (var i = 0; i < SkillFeats.StaticAssuranceFeats.Count; i++)
-            // {
-            //     SkillFeats.StaticAssuranceFeats[i].WithZOrder(i);
-            // }
             SkillFeats.Assurance?.Subfeats = SkillFeats.StaticAssuranceFeats;
             foreach (Feat feat in SkillFeats.Assurance?.Subfeats!)
             {
+                feat.FeatName.ToStringOrTechnical();
                 ModManager.AddFeat(feat);
                 BackgroundSelectionFeat devoted = (BackgroundSelectionFeat)new BackgroundSelectionFeat(
                         ModManager.RegisterFeatName((feat.Tag is Skill featTag ? featTag : Skill.Acrobatics)
@@ -55,6 +50,7 @@ public class ModLoader
                             sheet.TrainInThisOrSubstitute((Skill)(feat.Tag ?? Skill.Acrobatics));
                         }
                     );
+                devoted.FeatGroup = new FeatGroup("Assurance", 0);
                 ModManager.AddFeat(devoted);
             }
         };
@@ -64,8 +60,7 @@ public class ModLoader
     {
         Feat assuranceFeat = SkillFeats.AssuranceCreator(skill);
         adjustSubfeat?.Invoke(assuranceFeat);
-        // ModManager.AddFeat(assuranceFeat);
-        // SkillFeats.Assurance?.Subfeats?.Add(assuranceFeat);
+        ModManager.AddFeat(assuranceFeat);
         SkillFeats.StaticAssuranceFeats.Add(assuranceFeat);
         return assuranceFeat;
     }
