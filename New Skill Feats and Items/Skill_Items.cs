@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using Dawnsbury.Audio;
+using Dawnsbury.Auxiliary;
 using Dawnsbury.Core;
 using Dawnsbury.Core.CharacterBuilder.Selections.Options;
 using Dawnsbury.Core.CharacterBuilder.Spellcasting;
@@ -17,6 +18,7 @@ using Dawnsbury.Core.Roller;
 using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Modding;
 using Microsoft.Xna.Framework;
+using static New_Skill_Feats_and_Items.ModData;
 
 namespace New_Skill_Feats_and_Items;
 
@@ -28,7 +30,7 @@ public abstract class SkillItems
         ItemName dancingScarf = ModManager.RegisterNewItemIntoTheShop("Dancing Scarf", itemName =>
         {
             return new Item(itemName, new ModdedIllustration("SIAssets/DanceScarf.png"), "dancing scarf", 3, 60, Trait.Magical, Trait.Invested, Trait.Visual)
-                .WithWornAt(Trait.Necklace)
+                .WithWornAt(Trait.Headband)
                 .WithDescription("{i}This long and billowing scarf is typically woven of silk or sheer fabric and adorned with bells or other jangling bits of shiny metal.{/i}\n\n" +
                                  "You have a +1 item bonus to Performance." +
                                  "\n\nYou can use {i}Swirling Scarf{/i} {icon:Action}: If your last action was a successful Performance check, you become concealed until the beginning of your next turn.")
@@ -82,7 +84,7 @@ public abstract class SkillItems
         ModManager.RegisterNewItemIntoTheShop("Crafter's Eyepiece", itemName =>
         {
             return new Item(itemName, new ModdedIllustration("SIAssets/Eyepiece.png"), "crafter's eyepiece", 3, 60, Trait.Magical, Trait.Invested)
-                .WithWornAt(Trait.Headband)
+                .WithWornAt(MTraits.Eyepiece)
                 .WithDescription("{i}This rugged metal eyepiece etched with square patterns is designed to be worn over a single eye. Twisting the lens reveals a faint three-dimensional outline of an item you plan to build or repair, with helpful labels on the component parts.{/i}\n\n" +
                                  "You have a +1 item bonus to Crafting." +
                                  "\n\nOnce at the start of combat, as a {icon:FreeAction} free action, you can make improvements to a weapon or shield. Make a Crafting check against the standard DC by level of the item you're affecting, on a Success or better a weapon gains a +1 bonus to its damage rolls and a shield gains a +1 bonus to its hardness. If you are a master in Crafting, these bonuses increase to +2.")
@@ -131,7 +133,7 @@ public abstract class SkillItems
         });
         ModManager.RegisterNewItemIntoTheShop("Scoundrel's Mask", itemName =>
         {
-            Item scoundrelMask = new Item(itemName, ModData.Illustrations.Mask, "scoundrel's mask", 4, 80, Trait.Magical, Trait.Invested, Trait.Homebrew, MaskTrait)
+            Item scoundrelMask = new Item(itemName, Illustrations.Mask, "scoundrel's mask", 4, 80, Trait.Magical, Trait.Invested, Trait.Homebrew, MaskTrait)
                 .WithWornAt(Trait.Mask)
                 .WithDescription("{i}This mask appears to be a simple black leather mask, until it is worn, after which the mask seems to disappear. While wearing it, the mask subtly alters the wearer's facial expressions, aiding them in attempts at deceiving others. Occasionally, it also draws the wearer's eyes to their enemy's vulnerabilities.{/i}\n\n" +
                                  "You have a +1 item bonus to Deception." +
@@ -162,7 +164,7 @@ public abstract class SkillItems
                             && result >= CheckResult.Success && !self.PersistentUsedUpResources.UsedUpActions.Contains("ScoundrelsMask")
                             && action.Item != null && !target.IsImmuneTo(Trait.PrecisionDamage))
                         {
-                            if (self.HasEffect(ModData.QEffectIds.MaskAsk) || (self.HasEffect(ModData.QEffectIds.MaskAskIfCrit) && action.CheckResult == CheckResult.CriticalSuccess))
+                            if (self.HasEffect(MQEffectIds.MaskAsk) || (self.HasEffect(MQEffectIds.MaskAskIfCrit) && action.CheckResult == CheckResult.CriticalSuccess))
                             {
                                 if (!await self.Battle.AskForConfirmation(effect.Owner, IllustrationName.QuestionMark,
                                         "Do you want to use Scoundrel's Mask to deal an extra 1d6 precision damage to the target?",
@@ -173,7 +175,7 @@ public abstract class SkillItems
                                     damageEvent.KindedDamages.FirstOrDefault()!.DamageKind));
                                 self.PersistentUsedUpResources.UsedUpActions.Add("ScoundrelsMask");
                             }
-                            if (self.HasEffect(ModData.QEffectIds.MaskAuto) || (self.HasEffect(ModData.QEffectIds.MaskAutoIfCrit) && action.CheckResult == CheckResult.CriticalSuccess))
+                            if (self.HasEffect(MQEffectIds.MaskAuto) || (self.HasEffect(MQEffectIds.MaskAutoIfCrit) && action.CheckResult == CheckResult.CriticalSuccess))
                             {
                                 damageEvent.KindedDamages.Add(new KindedDamage(
                                     DiceFormula.FromText("1d6", "Scoundrel's Mask"),
@@ -283,6 +285,57 @@ public abstract class SkillItems
                 {
                     qfCoA.BonusToSkills = skill => skill == Skill.Diplomacy ? new Bonus(1, BonusType.Item, "Choker of Nobility") : null;
                 });
+        });
+        ModManager.RegisterNewItemIntoTheShop("Mirror Goggles", itemName =>
+        {
+            return new Item(itemName, new ModdedIllustration("SIAssets/Mirror.png"), "mirror goggles", 5, 135,
+                    Trait.Magical, Trait.Invested, Trait.Worn)
+                .WithWornAt(MTraits.Eyepiece)
+                .WithDescription("{i}These goggles feature highly reflective lenses.{/i}" +
+                                 "\n\nYou have a +1 item bonus to Perception and to saving throws against visual effects." +
+                                 "\n\nWhen you are targeted with a visual effect by a creature within 60 feet, you can use the following reaction {icon:Reaction}:" +
+                                 "\n\n{b}Reflective Retribution{/b} (manipulate): The creature that targeted you must attempt a DC 20 Fortitude save. On a failure, the creature is sickened 1 (sickened 2 on a critical failure). The creature is then temporarily immune to this reaction for the rest of the encounter.")
+                .WithPermanentQEffectWhenWorn((qf, item) =>
+                {
+                    qf.BonusToPerception = _ => new Bonus(1, BonusType.Item, "Mirror Goggles");
+                    qf.BonusToDefenses = (_, action, defense) => action != null && action.HasTrait(Trait.Visual) && defense.IsSavingThrow() ? new Bonus(1, BonusType.Item, "Mirror Goggles") : null;
+                    qf.AfterYouAreTargeted = async (effect, action) =>
+                    {
+                        Creature self = effect.Owner;
+                        Creature other = action.Owner;
+                        if (!action.HasTrait(Trait.Visual) || other.DistanceTo(self) > 12 || other.HasEffect(MQEffectIds.Reflected) || other.FriendOf(self))
+                            return;
+                        if (!await self.Battle.AskToUseReaction(self, $"You have been targeted by {other.Name} with {action.Name}, would you like to use a reaction {{icon:Reaction}} to use Reflective Retribution (manipulate) to force them to make a DC 20 Fortitude save or be sickened?", item.Illustration))
+                            return;
+                        CombatAction reflect = new CombatAction(self, item.Illustration, "Reflective Retribution",
+                                [Trait.Manipulate],
+                                "The creature that targeted you must attempt a DC 20 Fortitude save. On a failure, the creature is sickened 1 (sickened 2 on a critical failure). The creature is then temporarily immune to this reaction for the rest of the encounter.",
+                                Target.Ranged(12))
+                            .WithActionCost(0)
+                            .WithName("Reflective Retribution {icon:Reaction}")
+                            .WithSavingThrow(new SavingThrow(Defense.Fortitude, 20))
+                            .WithEffectOnEachTarget(async (_, _, target, result) =>
+                            {
+                                switch (result)
+                                {
+                                    case >= CheckResult.Success:
+                                        break;
+                                    case CheckResult.Failure:
+                                        target.AddQEffect(QEffect.Sickened(1, 20));
+                                        break;
+                                    case CheckResult.CriticalFailure:
+                                        target.AddQEffect(QEffect.Sickened(2, 20));
+                                        break;
+                                }
+                                target.AddQEffect(new QEffect()
+                                {
+                                    Id = MQEffectIds.Reflected
+                                });
+                            });
+                        await self.Battle.GameLoop.FullCast(reflect, ChosenTargets.CreateSingleTarget(other));
+                    };
+                });
+
         });
     }
     private static void AddDanceAction(QEffect self)

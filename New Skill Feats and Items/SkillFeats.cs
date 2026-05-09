@@ -35,7 +35,7 @@ public static class SkillFeats
     public static IEnumerable<Feat> CreateSkillFeats()
     {
         //skill feats
-        Feat virtuoso = new TrueFeat(ModData.FeatNames.Virtuoso, 1,
+        Feat virtuoso = new TrueFeat(ModData.MFeatNames.Virtuoso, 1,
             "You have exceptional talent in performing.",
             "You have a +1 circumstance bonus to Performance. If you are a master in Performance, this bonus increases to +2.",
             [Trait.General, Trait.Skill]);
@@ -64,13 +64,13 @@ public static class SkillFeats
         for (int i = 0; i < 4; i++)
         {
             int index = i;
-            Feat rootChoice = new (ModManager.RegisterFeatName(ModData.FeatNames.RootMagicFeat.ToString() + (i + 1),
+            Feat rootChoice = new (ModManager.RegisterFeatName(ModData.MFeatNames.RootMagicFeat.ToString() + (i + 1),
                     "Player Character " + (i + 1)), null, "", [], null);
             CreateRootChoiceLogic(rootChoice, index);
             yield return rootChoice;
         }
         //skill feats continued
-        Feat dirtyTrick = new TrueFeat(ModData.FeatNames.DirtyTrick, 1,
+        Feat dirtyTrick = new TrueFeat(ModData.MFeatNames.DirtyTrick, 1,
             "You hook a foe's bootlaces together, pull their hat over their eyes, loosen their belt, or otherwise confound their mobility through an underhanded tactic.",
             "{b}Requirements{/b} You have a hand free and are within melee reach of an opponent." +
             "\nAttempt a Thievery check against the target's Reflex DC." +
@@ -94,12 +94,12 @@ public static class SkillFeats
         string baseline = !PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold")
             ? "You can forgo rolling for the following skill checks to instead receive an automatic result: "
             : "The following skill checks cannot roll less than your assurance value: ";
-        Assurance = new TrueFeat(ModData.FeatNames.Assurance, 1,
+        Assurance = new TrueFeat(ModData.MFeatNames.Assurance, 1,
             "Even in the worst circumstances, you can perform basic tasks.",
             description, [Trait.General, Trait.Skill])
             .WithPermanentQEffect(baseline,qfFeat =>
             {
-                if (qfFeat.Owner.HasEffect(ModData.QEffectIds.AssuranceFeat))
+                if (qfFeat.Owner.HasEffect(ModData.MQEffectIds.AssuranceFeat))
                 {
                     qfFeat.Innate = false;
                     qfFeat.Description = null;
@@ -114,7 +114,7 @@ public static class SkillFeats
                                     .ToNumber(qfFeat.Owner.PersistentCharacterSheet.Calculated.CurrentLevel)}{{/Blue}}" + ")"), "and");
                 }
                 qfFeat.Description += ".";
-                qfFeat.Id = ModData.QEffectIds.AssuranceFeat;
+                qfFeat.Id = ModData.MQEffectIds.AssuranceFeat;
             });
         Assurance.CanSelectMultipleTimes = true;
         if (!PlayerProfile.Instance.IsBooleanOptionEnabled("AssuranceThreshold"))
@@ -125,30 +125,30 @@ public static class SkillFeats
                         "Default Assurance Setting",
                         SelectionOption.PRECOMBAT_PREPARATIONS_LEVEL, ft => ft.Tag is "Assurance Settings")
                     .WithIsOptional();
-                if (values.AllFeats.Count(ft => ft.FeatName == ModData.FeatNames.Assurance) <= 1)
+                if (values.AllFeats.Count(ft => ft.FeatName == ModData.MFeatNames.Assurance) <= 1)
                     values.AddSelectionOption(setup);
             });
         }
         else
         {
-            Assurance.WithOnSheet(values => values.GrantFeat(ModData.FeatNames.AssuranceThreshold));
+            Assurance.WithOnSheet(values => values.GrantFeat(ModData.MFeatNames.AssuranceThreshold));
         }
         
         yield return Assurance;
         //assurance combat prep feats
-        Feat assuranceOn = new Feat(ModData.FeatNames.AssuranceOn, null,
+        Feat assuranceOn = new Feat(ModData.MFeatNames.AssuranceOn, null,
             "Assurance is applied to all relevant skill checks. You can change this setting with a free action under other maneuvers.",
-            [], null).WithTag("Assurance Settings").WithPrerequisite(values => !values.HasFeat(ModData.FeatNames.AssuranceOff) &&  !values.HasFeat(ModData.FeatNames.AssuranceAsk) &&  !values.HasFeat(ModData.FeatNames.AssuranceThreshold), "You must pick only 1 assurance setting.");
+            [], null).WithTag("Assurance Settings").WithPrerequisite(values => !values.HasFeat(ModData.MFeatNames.AssuranceOff) &&  !values.HasFeat(ModData.MFeatNames.AssuranceAsk) &&  !values.HasFeat(ModData.MFeatNames.AssuranceThreshold), "You must pick only 1 assurance setting.");
         yield return assuranceOn;
-        Feat assuranceOff = new Feat(ModData.FeatNames.AssuranceOff, null,
+        Feat assuranceOff = new Feat(ModData.MFeatNames.AssuranceOff, null,
             "Assurance is not applied. You can change this setting with a free action under other maneuvers.",
-            [], null).WithTag("Assurance Settings").WithPrerequisite(values => !values.HasFeat(ModData.FeatNames.AssuranceOn) &&  !values.HasFeat(ModData.FeatNames.AssuranceAsk) &&  !values.HasFeat(ModData.FeatNames.AssuranceThreshold), "You must pick only 1 assurance setting.");
+            [], null).WithTag("Assurance Settings").WithPrerequisite(values => !values.HasFeat(ModData.MFeatNames.AssuranceOn) &&  !values.HasFeat(ModData.MFeatNames.AssuranceAsk) &&  !values.HasFeat(ModData.MFeatNames.AssuranceThreshold), "You must pick only 1 assurance setting.");
         yield return assuranceOff;
-        Feat assuranceAsk = new Feat(ModData.FeatNames.AssuranceAsk, null,
+        Feat assuranceAsk = new Feat(ModData.MFeatNames.AssuranceAsk, null,
             "Before each relevant skill check you will be asked to apply assurance. You can change this setting with a free action under other maneuvers.",
-            [], null).WithTag("Assurance Settings").WithPrerequisite(values => !values.HasFeat(ModData.FeatNames.AssuranceOff) &&  !values.HasFeat(ModData.FeatNames.AssuranceOn) &&  !values.HasFeat(ModData.FeatNames.AssuranceThreshold), "You must pick only 1 assurance setting.");
+            [], null).WithTag("Assurance Settings").WithPrerequisite(values => !values.HasFeat(ModData.MFeatNames.AssuranceOff) &&  !values.HasFeat(ModData.MFeatNames.AssuranceOn) &&  !values.HasFeat(ModData.MFeatNames.AssuranceThreshold), "You must pick only 1 assurance setting.");
         yield return assuranceAsk;
-        Feat assuranceThreshold = new Feat(ModData.FeatNames.AssuranceThreshold, null,
+        Feat assuranceThreshold = new Feat(ModData.MFeatNames.AssuranceThreshold, null,
             "Assurance will be applied to all relevant skill checks but only if it would be helpful.", [], null);
         yield return assuranceThreshold;
         //skill feats continued
@@ -495,7 +495,7 @@ public static class SkillFeats
 
     public static void CreateAssuranceToggle(Creature self)
     {
-        if (!self.HasFeat(ModData.FeatNames.AssuranceThreshold))
+        if (!self.HasFeat(ModData.MFeatNames.AssuranceThreshold))
         {
             self.AddQEffect(new QEffect()
             {
@@ -511,12 +511,12 @@ public static class SkillFeats
                             .WithEffectOnSelf(async (action, innerSelf) =>
                                 {
                                     List<string> assuranceChoices = ["off", "on", "ask", "cancel"];
-                                    if (innerSelf.HasEffect(ModData.QEffectIds.AssuranceOff))
+                                    if (innerSelf.HasEffect(ModData.MQEffectIds.AssuranceOff))
                                         assuranceChoices.RemoveAll(str => str == "off");
-                                    if (innerSelf.HasEffect(ModData.QEffectIds.AssuranceOn))
+                                    if (innerSelf.HasEffect(ModData.MQEffectIds.AssuranceOn))
                                         assuranceChoices.RemoveAll(str => str == "on");
-                                    if (!innerSelf.HasEffect(ModData.QEffectIds.AssuranceOff) &&
-                                        !innerSelf.HasEffect(ModData.QEffectIds.AssuranceOn))
+                                    if (!innerSelf.HasEffect(ModData.MQEffectIds.AssuranceOff) &&
+                                        !innerSelf.HasEffect(ModData.MQEffectIds.AssuranceOn))
                                         assuranceChoices.RemoveAll(str => str == "ask");
                                     ChoiceButtonOption chosenOption = await innerSelf.AskForChoiceAmongButtons(
                                         IllustrationName.QuestionMark,
@@ -527,22 +527,22 @@ public static class SkillFeats
                                         if (assuranceChoices[chosenOption.Index] == "off")
                                         {
                                             innerSelf.RemoveAllQEffects(qff =>
-                                                qff.Id == ModData.QEffectIds.AssuranceOn);
+                                                qff.Id == ModData.MQEffectIds.AssuranceOn);
                                             self.AddQEffect(AssuranceOff());
                                         }
 
                                         if (assuranceChoices[chosenOption.Index] == "on")
                                         {
                                             innerSelf.RemoveAllQEffects(qff =>
-                                                qff.Id == ModData.QEffectIds.AssuranceOff);
+                                                qff.Id == ModData.MQEffectIds.AssuranceOff);
                                             innerSelf.AddQEffect(AssuranceOn());
                                         }
 
                                         if (assuranceChoices[chosenOption.Index] == "ask")
                                         {
                                             innerSelf.RemoveAllQEffects(qff =>
-                                                qff.Id == ModData.QEffectIds.AssuranceOn
-                                                || qff.Id == ModData.QEffectIds.AssuranceOff);
+                                                qff.Id == ModData.MQEffectIds.AssuranceOn
+                                                || qff.Id == ModData.MQEffectIds.AssuranceOff);
                                         }
                                     }
                                     else action.RevertRequested = true;
@@ -566,22 +566,22 @@ public static class SkillFeats
                         Innate = false,
                         StartOfCombat = _ =>
                         {
-                            if (self.HasFeat(ModData.FeatNames.AssuranceOn) && !self.HasEffect(ModData.QEffectIds.AssuranceOn) && !self.HasFeat(ModData.FeatNames.AssuranceThreshold))
+                            if (self.HasFeat(ModData.MFeatNames.AssuranceOn) && !self.HasEffect(ModData.MQEffectIds.AssuranceOn) && !self.HasFeat(ModData.MFeatNames.AssuranceThreshold))
                                 self.AddQEffect(AssuranceOn());
-                            if (self.HasFeat(ModData.FeatNames.AssuranceOff) && !self.HasEffect(ModData.QEffectIds.AssuranceOff) && !self.HasFeat(ModData.FeatNames.AssuranceThreshold))
+                            if (self.HasFeat(ModData.MFeatNames.AssuranceOff) && !self.HasEffect(ModData.MQEffectIds.AssuranceOff) && !self.HasFeat(ModData.MFeatNames.AssuranceThreshold))
                                 self.AddQEffect(AssuranceOff());
                             return Task.CompletedTask;
                         },
                         YouBeginAction = async (_, action) =>
                         {
-                            if (!self.HasEffect(ModData.QEffectIds.AssuranceOff) && !self.HasEffect(ModData.QEffectIds.AssuranceOn) && !self.HasFeat(ModData.FeatNames.AssuranceThreshold) && DoesActionHaveBreakdownAndSkill(action, skill))
+                            if (!self.HasEffect(ModData.MQEffectIds.AssuranceOff) && !self.HasEffect(ModData.MQEffectIds.AssuranceOn) && !self.HasFeat(ModData.MFeatNames.AssuranceThreshold) && DoesActionHaveBreakdownAndSkill(action, skill))
                                 if (await self.Battle.AskForConfirmation(self, IllustrationName.QuestionMark,
                                         "Use assurance with this action?", "yes"))
                                     self.AddQEffect(AssuranceAsk());
                         },
                         BeforeYourActiveRoll = async (_, action, target) =>
                         {
-                            if (!self.HasEffect(ModData.QEffectIds.AssuranceOff) && !self.HasEffect(ModData.QEffectIds.AssuranceOn) && !self.HasFeat(ModData.FeatNames.AssuranceThreshold) 
+                            if (!self.HasEffect(ModData.MQEffectIds.AssuranceOff) && !self.HasEffect(ModData.MQEffectIds.AssuranceOn) && !self.HasFeat(ModData.MFeatNames.AssuranceThreshold) 
                                 && action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill == skill
                                 && action.ActiveRollSpecification.DetermineDC.Invoke(action, self, target).TotalNumber <= sheet.Proficiencies.Get(skillTrait)
                                     .ToNumber(self.ProficiencyLevel) + 10)
@@ -591,9 +591,9 @@ public static class SkillFeats
                         },
                         AfterYouTakeAction = (_, _) =>
                         {
-                            if (self.HasEffect(ModData.QEffectIds.AssuranceAsk))
+                            if (self.HasEffect(ModData.MQEffectIds.AssuranceAsk))
                             {
-                                self.RemoveAllQEffects(qf => qf.Id == ModData.QEffectIds.AssuranceAsk);
+                                self.RemoveAllQEffects(qf => qf.Id == ModData.MQEffectIds.AssuranceAsk);
                             }
                             return Task.CompletedTask;
                         },
@@ -604,7 +604,7 @@ public static class SkillFeats
                                 sheet.Proficiencies.Get(skillTrait)
                                     .ToNumber(self.ProficiencyLevel) + 10 - action.ActiveRollSpecification.DetermineDC(action, action.Owner, target)
                                     .TotalNumber;
-                            if (action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill == skill && (self.HasEffect(ModData.QEffectIds.AssuranceOn) || self.HasEffect(ModData.QEffectIds.AssuranceAsk) || (self.HasFeat(ModData.FeatNames.AssuranceThreshold) && Threshold(result1, check))))
+                            if (action.ActiveRollSpecification?.TaggedDetermineBonus.InvolvedSkill == skill && (self.HasEffect(ModData.MQEffectIds.AssuranceOn) || self.HasEffect(ModData.MQEffectIds.AssuranceAsk) || (self.HasFeat(ModData.MFeatNames.AssuranceThreshold) && Threshold(result1, check))))
                             {
                                 switch (check)
                                 {
@@ -786,7 +786,7 @@ public static class SkillFeats
     {
         tumblingTrick
             .WithPrerequisite(
-                values => values.HasFeat(ModData.FeatNames.DirtyTrick) &&
+                values => values.HasFeat(ModData.MFeatNames.DirtyTrick) &&
                           values.GetProficiency(Trait.Acrobatics) >= Proficiency.Master,
                 "You must have the Dirty Trick feat and be a master in Acrobatics.")
             .WithPermanentQEffect( "When you successfully tumble through an enemy, you may use a reaction to use Dirty Trick.", qf =>
@@ -851,12 +851,12 @@ public static class SkillFeats
             "If you succeed in Demoralizing a creature, for the rest of the combat you gain a +1 circumstance bonus to saving throws against that creature's spells.",
             qf => qf.AfterYouTakeActionAgainstTarget = (effect, action, target, result) =>
             {
-                if (action.ActionId is ActionId.Demoralize && result >= CheckResult.Success && effect.Owner.FindQEffect(ModData.QEffectIds.Terrify)?.Tag != target)
+                if (action.ActionId is ActionId.Demoralize && result >= CheckResult.Success && effect.Owner.FindQEffect(ModData.MQEffectIds.Terrify)?.Tag != target)
                 {
                     effect.Owner.AddQEffect( new QEffect()
                         {
                             Tag = target,
-                            Id = ModData.QEffectIds.Terrify,
+                            Id = ModData.MQEffectIds.Terrify,
                             BonusToDefenses = (_, spell, defense) =>
                             {
                                 if (spell != null && spell.HasTrait(Trait.Spell) && defense.IsSavingThrow() &&
@@ -1046,7 +1046,7 @@ public static class SkillFeats
                 {
                     creature.AddQEffect(new QEffect(ExpirationCondition.Never)
                         {
-                            Id = ModData.QEffectIds.RootMagic,
+                            Id = ModData.MQEffectIds.RootMagic,
                             BonusToDefenses = (_, _, defense) =>
                             {
                                 if (defense.IsSavingThrow())
@@ -1056,7 +1056,7 @@ public static class SkillFeats
                             },
                             AfterYouMakeSavingThrow = (_, _, _) =>
                             {
-                                caster.RemoveAllQEffects(qf => qf.Id == ModData.QEffectIds.RootMagic);
+                                caster.RemoveAllQEffects(qf => qf.Id == ModData.MQEffectIds.RootMagic);
                             }
                         }
                     );
@@ -1120,7 +1120,7 @@ public static class SkillFeats
                             {
                                 target.ChosenCreature!.AddQEffect(new QEffect()
                                 {
-                                    Id = ModData.QEffectIds.DirtyTricked,
+                                    Id = ModData.MQEffectIds.DirtyTricked,
                                     ProvideContextualAction = qfInner =>
                                     {
                                         return new ActionPossibility(new CombatAction(qfInner.Owner,
@@ -1134,7 +1134,7 @@ public static class SkillFeats
                                                 {
                                                     cr.RemoveAllQEffects(qfNew =>
                                                         qfNew == clumsyEffect ||
-                                                        qfNew.Id == ModData.QEffectIds.DirtyTricked);
+                                                        qfNew.Id == ModData.MQEffectIds.DirtyTricked);
                                                 }
                                             })
                                         );
@@ -1156,7 +1156,7 @@ public static class SkillFeats
     {
         QEffect ask = new()
         {
-            Id = ModData.QEffectIds.AssuranceAsk,
+            Id = ModData.MQEffectIds.AssuranceAsk,
             DoNotShowUpOverhead = true
         };
         return ask;
@@ -1165,7 +1165,7 @@ public static class SkillFeats
     {
         QEffect on = new()
         {
-            Id = ModData.QEffectIds.AssuranceOn,
+            Id = ModData.MQEffectIds.AssuranceOn,
             Illustration = new ModdedIllustration("SIAssets/On.png"),
             Description = "Assurance will be applied on relevant skill checks.",
             Name = "Assurance - On",
@@ -1177,7 +1177,7 @@ public static class SkillFeats
     {
         QEffect off = new()
         {
-            Id = ModData.QEffectIds.AssuranceOff,
+            Id = ModData.MQEffectIds.AssuranceOff,
             Illustration = new ModdedIllustration("SIAssets/Off.png"),
             Description = "Assurance will not be applied.",
             Name = "Assurance - Off",

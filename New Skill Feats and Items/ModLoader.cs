@@ -18,7 +18,7 @@ public class ModLoader
         }
         ModManager.RegisterActionOnEachCreature(cr =>
         {
-            if (cr.HasFeat(ModData.FeatNames.Assurance))
+            if (cr.HasFeat(ModData.MFeatNames.Assurance))
                 SkillFeats.CreateAssuranceToggle(cr);
         });
         ModManager.RegisterBooleanSettingsOption("AssuranceThreshold", "Skill Feats - Assurance Threshold", "Enabling this option changes the functionality of assurance, instead of deciding to use assurance or not, assurance will be automatically applied if it would be beneficial and not applied otherwise. This makes assurance less fiddly and more powerful." +
@@ -46,7 +46,7 @@ public class ModLoader
                     )
                     .WithOnSheet(sheet =>
                         {
-                            sheet.GrantFeat(ModData.FeatNames.Assurance, feat.FeatName);
+                            sheet.GrantFeat(ModData.MFeatNames.Assurance, feat.FeatName);
                             sheet.TrainInThisOrSubstitute((Skill)(feat.Tag ?? Skill.Acrobatics));
                         }
                     );

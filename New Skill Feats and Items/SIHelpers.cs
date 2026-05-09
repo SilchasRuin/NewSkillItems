@@ -44,7 +44,7 @@ internal abstract class SiHelpers
             ExpiresAt = ExpirationCondition.Never,
             Tag = item,
             Illustration = item.Illustration,
-            Id = ModData.QEffectIds.ChosenShieldQf
+            Id = ModData.MQEffectIds.ChosenShieldQf
         };
         return chooseShield;
     }
@@ -57,7 +57,7 @@ internal abstract class SiHelpers
             ExpiresAt = ExpirationCondition.Never,
             Tag = item,
             Illustration = item.Illustration,
-            Id = ModData.QEffectIds.ChosenWeaponQf
+            Id = ModData.MQEffectIds.ChosenWeaponQf
 
         };
         return chooseWeapon;
@@ -69,9 +69,9 @@ internal abstract class SiHelpers
             StateCheck = self =>
             {
                 Creature owner = self.Owner;
-                if (owner.FindQEffect(ModData.QEffectIds.ChosenWeaponQf) != null)
+                if (owner.FindQEffect(ModData.MQEffectIds.ChosenWeaponQf) != null)
                 {
-                    QEffect? effect = owner.FindQEffect(ModData.QEffectIds.ChosenWeaponQf);
+                    QEffect? effect = owner.FindQEffect(ModData.MQEffectIds.ChosenWeaponQf);
                     Item? weapon = effect?.Tag as Item;
                     owner.AddQEffect(new QEffect()
                     {
@@ -79,9 +79,9 @@ internal abstract class SiHelpers
                         YouDealDamageWithStrike = (_, action, damage, _) => action.Item != weapon ? damage : damage.Add(DiceFormula.FromText($"{(owner.Proficiencies.Get(Trait.Crafting) < Proficiency.Master ? 1 : 2)}", "Enhanced"))
                     });
                 }
-                if (owner.FindQEffect(ModData.QEffectIds.ChosenShieldQf) != null)
+                if (owner.FindQEffect(ModData.MQEffectIds.ChosenShieldQf) != null)
                 {
-                    QEffect? effect = owner.FindQEffect(ModData.QEffectIds.ChosenShieldQf);
+                    QEffect? effect = owner.FindQEffect(ModData.MQEffectIds.ChosenShieldQf);
                     Item? shield = effect?.Tag as Item;
                     int hardness = Items.GetItemTemplate(shield!.ItemName).Hardness;
                     shield.WithShieldProperties(owner.Proficiencies.Get(Trait.Crafting) < Proficiency.Master ? (hardness+=1) : (hardness+=2));
@@ -101,15 +101,15 @@ internal abstract class SiHelpers
             .WithEffectOnSelf(async (action, innerSelf) =>
             {
                 List<string> maskChoices = ["Off","Auto","Auto if Crit","Ask","Ask if Crit","Cancel"];
-                if (innerSelf.HasEffect(ModData.QEffectIds.MaskOff))
+                if (innerSelf.HasEffect(ModData.MQEffectIds.MaskOff))
                     maskChoices.RemoveAll(str => str == "Off");
-                if (innerSelf.HasEffect(ModData.QEffectIds.MaskAuto))
+                if (innerSelf.HasEffect(ModData.MQEffectIds.MaskAuto))
                     maskChoices.RemoveAll(str => str == "Auto");
-                if (innerSelf.HasEffect(ModData.QEffectIds.MaskAutoIfCrit))
+                if (innerSelf.HasEffect(ModData.MQEffectIds.MaskAutoIfCrit))
                     maskChoices.RemoveAll(str => str == "Auto if Crit");
-                if (innerSelf.HasEffect(ModData.QEffectIds.MaskAsk))
+                if (innerSelf.HasEffect(ModData.MQEffectIds.MaskAsk))
                     maskChoices.RemoveAll(str => str == "Ask");
-                if (innerSelf.HasEffect(ModData.QEffectIds.MaskAskIfCrit))
+                if (innerSelf.HasEffect(ModData.MQEffectIds.MaskAskIfCrit))
                     maskChoices.RemoveAll(str => str == "Ask if Crit");
                 ChoiceButtonOption chosenOption = await innerSelf.AskForChoiceAmongButtons(
                     IllustrationName.QuestionMark,
@@ -119,27 +119,27 @@ internal abstract class SiHelpers
                 {
                     if (maskChoices[chosenOption.Index] == "Off")
                     {
-                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.QEffectIds.MaskOff));
+                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.MQEffectIds.MaskOff));
                         self.AddQEffect(MaskOff());
                     }
                     if (maskChoices[chosenOption.Index] == "Auto")
                     {
-                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.QEffectIds.MaskAuto));
+                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.MQEffectIds.MaskAuto));
                         innerSelf.AddQEffect(MaskAuto());
                     }
                     if (maskChoices[chosenOption.Index] == "Auto if Crit")
                     {
-                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.QEffectIds.MaskAutoIfCrit));
+                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.MQEffectIds.MaskAutoIfCrit));
                         innerSelf.AddQEffect(MaskAutoIfCrit());
                     }
                     if (maskChoices[chosenOption.Index] == "Ask")
                     {
-                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.QEffectIds.MaskAsk));
+                        innerSelf.RemoveAllQEffects(qff => HasMaskQf(qff.Id, ModData.MQEffectIds.MaskAsk));
                         innerSelf.AddQEffect(MaskAsk());
                     }
                     if (maskChoices[chosenOption.Index] == "Ask if Crit")
                     {
-                        innerSelf.RemoveAllQEffects(qff =>HasMaskQf(qff.Id, ModData.QEffectIds.MaskAskIfCrit));
+                        innerSelf.RemoveAllQEffects(qff =>HasMaskQf(qff.Id, ModData.MQEffectIds.MaskAskIfCrit));
                         innerSelf.AddQEffect(MaskAskIfCrit());
                     }
                 }
@@ -151,7 +151,7 @@ internal abstract class SiHelpers
     {
         return new QEffect()
         {
-            Id = ModData.QEffectIds.MaskOff,
+            Id = ModData.MQEffectIds.MaskOff,
             Name = "Off",
             Description = "You will not deal damage with scoundrel's mask",
             Illustration = new PlainTextPortraitIllustration(Color.DarkRed, "O"),
@@ -163,7 +163,7 @@ internal abstract class SiHelpers
     {
         return new QEffect()
         {
-            Id = ModData.QEffectIds.MaskAuto,
+            Id = ModData.MQEffectIds.MaskAuto,
             Name = "Auto",
             Description = "You will deal scoundrel's mask's damage if conditions are met.",
             Illustration = new PlainTextPortraitIllustration(Color.Green, "AT"),
@@ -175,7 +175,7 @@ internal abstract class SiHelpers
     {
         return new QEffect()
         {
-            Id = ModData.QEffectIds.MaskAutoIfCrit,
+            Id = ModData.MQEffectIds.MaskAutoIfCrit,
             Name = "Auto if Crit",
             Description = "You will deal scoundrel's mask's damage if conditions are met and you crit.",
             Illustration = new PlainTextPortraitIllustration(Color.Green, "C"),
@@ -187,7 +187,7 @@ internal abstract class SiHelpers
     {
         return new QEffect()
         {
-            Id = ModData.QEffectIds.MaskAsk,
+            Id = ModData.MQEffectIds.MaskAsk,
             Name = "Ask",
             Description = "You will be asked to deal scoundrel's mask's damage if conditions are met.",
             Illustration = new PlainTextPortraitIllustration(Color.Blue, "AK"),
@@ -199,7 +199,7 @@ internal abstract class SiHelpers
     {
         return new QEffect()
         {
-            Id = ModData.QEffectIds.MaskAskIfCrit,
+            Id = ModData.MQEffectIds.MaskAskIfCrit,
             Name = "Ask if Crit",
             Description = "You will be asked to deal scoundrel's mask's damage if conditions are met and you crit.",
             Illustration = new PlainTextPortraitIllustration(Color.Blue, "C"),
@@ -212,10 +212,10 @@ internal abstract class SiHelpers
     {
         if (effectId == toCheck)
             return false;
-        return (effectId == ModData.QEffectIds.MaskAsk || effectId == ModData.QEffectIds.MaskAskIfCrit || effectId == ModData.QEffectIds.MaskAutoIfCrit ||  effectId == ModData.QEffectIds.MaskAuto || effectId == ModData.QEffectIds.MaskOff) && effectId != toCheck;
+        return (effectId == ModData.MQEffectIds.MaskAsk || effectId == ModData.MQEffectIds.MaskAskIfCrit || effectId == ModData.MQEffectIds.MaskAutoIfCrit ||  effectId == ModData.MQEffectIds.MaskAuto || effectId == ModData.MQEffectIds.MaskOff) && effectId != toCheck;
     }
     internal static bool HasMaskQf(Creature self)
     {
-        return self.HasEffect(ModData.QEffectIds.MaskAsk) || self.HasEffect(ModData.QEffectIds.MaskAskIfCrit) || self.HasEffect(ModData.QEffectIds.MaskAutoIfCrit) ||  self.HasEffect(ModData.QEffectIds.MaskAuto) || self.HasEffect(ModData.QEffectIds.MaskAuto);
+        return self.HasEffect(ModData.MQEffectIds.MaskAsk) || self.HasEffect(ModData.MQEffectIds.MaskAskIfCrit) || self.HasEffect(ModData.MQEffectIds.MaskAutoIfCrit) ||  self.HasEffect(ModData.MQEffectIds.MaskAuto) || self.HasEffect(ModData.MQEffectIds.MaskAuto);
     }
 }

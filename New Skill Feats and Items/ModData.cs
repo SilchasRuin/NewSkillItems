@@ -1,6 +1,7 @@
 ﻿using Dawnsbury.Core.CharacterBuilder.Feats;
 using Dawnsbury.Core.CombatActions;
 using Dawnsbury.Core.Mechanics;
+using Dawnsbury.Core.Mechanics.Enumerations;
 using Dawnsbury.Display.Illustrations;
 using Dawnsbury.Modding;
 
@@ -8,7 +9,7 @@ namespace New_Skill_Feats_and_Items;
 
 public abstract class ModData
 {
-    public static class QEffectIds
+    public static class MQEffectIds
     {
         public static QEffectId ChosenShieldQf { get; } = ModManager.RegisterEnumMember<QEffectId>("Chosen Shield");
         public static QEffectId ChosenWeaponQf { get; } = ModManager.RegisterEnumMember<QEffectId>("Chosen Weapon");
@@ -27,8 +28,9 @@ public abstract class ModData
         public static QEffectId MaskAutoIfCrit { get; } = ModManager.RegisterEnumMember<QEffectId>("MaskAutoIfCrit");
         public static QEffectId MaskOff { get; } = ModManager.RegisterEnumMember<QEffectId>("MaskOff");
         public static QEffectId AssuranceFeat { get; } = ModManager.RegisterEnumMember<QEffectId>("AssuranceFeat");
+        public static QEffectId Reflected { get; } = ModManager.RegisterEnumMember<QEffectId>("SI_Reflected");
     }
-    public static class FeatNames
+    public static class MFeatNames
     {
         public static readonly FeatName RootMagicFeat = ModManager.RegisterFeatName("RootMagicFeat", "Root Magic");
         public static readonly FeatName Assurance = ModManager.RegisterFeatName("Assurance", "Assurance");
@@ -50,5 +52,9 @@ public abstract class ModData
     {
         public static readonly Illustration Mask = new ModdedIllustration("SIAssets/Mask.png");
     }
-    
+
+    public static class MTraits
+    {
+        public static readonly Trait Eyepiece = ModManager.RegisterTrait("WornEyepiece", new TraitProperties("Eyepiece", false));
+    }
 }
